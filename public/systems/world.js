@@ -5,7 +5,7 @@ import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 
 const CHUNK_SIZE = 50;
 const CHUNK_GRID_SIZE = 50;
-const DRAW_RANGE = 3;
+const DRAW_RANGE = 6;
 const PHYSICS_DISTANCE = 2
 const WORLD_SIZE = CHUNK_SIZE * (DRAW_RANGE * 2 - 1);
 const WORLD_GRID_SIZE = CHUNK_GRID_SIZE * (DRAW_RANGE * 2 - 1);

@@ -28,7 +28,7 @@ export class Graphics {
         this.scene.add(this.sun.target);
 
         //fog
-        this.scene.fog = new THREE.Fog(0xD7D0FF, 400, 500);
+        this.scene.fog = new THREE.Fog(0xD7D0FF, 100, 200);
 
         //sky
         this.sky = new Sky();

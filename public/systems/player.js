@@ -92,6 +92,6 @@ export class Player extends RigidBody {
     update(dt) {
         this.move()
 
-        this.camera.position.copy(this.position).add(new THREE.Vector3(0, 40, 0))
+        this.camera.position.copy(this.position)
     }
 }
