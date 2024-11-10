@@ -1,0 +1,27 @@
+{
+  "name": "Adventure",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torjohanaleksandersen/adventure.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "description": "",
+  "dependencies": {
+    "alea": "^1.0.1",
+    "express": "^4.21.1",
+    "nodemon": "^3.1.7",
+    "simplex-noise": "^4.0.3",
+    "socket.io": "^4.8.1",
+    "three": "^0.169.0",
+    "three-mesh-bvh": "^0.8.2"
+  }
+}
