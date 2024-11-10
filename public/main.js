@@ -33,7 +33,7 @@ physics.addRigidBody(player);
 
 const graphics = new Graphics(scene);
 
-const world = new World(physics)
+const world = new World(physics, player)
 scene.add(world)
 
 
