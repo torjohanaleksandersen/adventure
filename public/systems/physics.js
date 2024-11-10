@@ -102,6 +102,11 @@ export class Physics {
             const offset = Math.max(0.0, deltaVector.length() - 1e-5);
             deltaVector.normalize().multiplyScalar(offset);
 
+            if (deltaVector.length() < 10e-4) {
+                deltaVector.x = 0;
+                deltaVector.z = 0;
+            }
+
             rigidBody.position.add(deltaVector);
 
             if (!rigidBody.onGround) {
