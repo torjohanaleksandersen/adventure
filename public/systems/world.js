@@ -57,34 +57,6 @@ export class World extends THREE.Group {
         });
     }
 
-    generateTree() {
-        const loader = new GLTFLoader()
-
-        loader.load("models/nature/Tree0.glb", (gltf) => {
-            const model = gltf.scene;
-
-            model.position.set(0, 5, 0)
-            model.scale.setScalar(5)
-
-            model.traverse(obj => {
-                if (obj.isMesh) {
-                    obj.castShadow = true;
-                    obj.receiveShadow = true;
-                }
-            })
-
-            setTimeout(() => {
-                this.forEachVertex((vertex) => {
-                    if (vertex.y > 1 && vertex.y < 4 && Math.random() >= 0.999) {
-                        const clone = model.clone();
-                        clone.position.set(vertex.x, vertex.y + 5, vertex.z);
-                        this.add(clone);
-                    }
-                })
-            }, 500)
-        })
-    }
-
     generateChunk(x, z, collidable = true) {
         const chunk = new Chunk(x, z, CHUNK_SIZE, CHUNK_GRID_SIZE);
         this.chunks.set(`${x},${z}`, chunk);

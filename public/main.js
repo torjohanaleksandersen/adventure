@@ -6,6 +6,7 @@ import { Player } from './systems/player.js';
 import { Graphics } from './systems/graphics.js';
 import { World } from './systems/world.js';
 import { Time } from './systems/time.js';
+import { Models } from './systems/models.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -24,38 +25,47 @@ document.addEventListener('mousedown', () => {
 })
 
 export const inputs = new Inputs(camera, renderer)
-export const time = new Time()
+export const time = new Time();
+export const models = new Models();
 
-const physics = new Physics(scene);
+async function main() {
+    await models.loadAllModels();
 
-const player = new Player(camera, scene);
-physics.addRigidBody(player);
+    const physics = new Physics(scene);
 
-const graphics = new Graphics(scene);
+    const player = new Player(camera, scene);
+    physics.addRigidBody(player);
+    
+    const graphics = new Graphics(scene);
+    
+    const world = new World(physics, player)
+    scene.add(world)
 
-const world = new World(physics, player)
-scene.add(world)
-
-
-inputs.registerHandler('keydown', e => {
-    if (e.key == 'g') console.log(player.position)
-})
-
-let currentTime = performance.now();
-render();
-function render() {
-    const newTime = performance.now();
-    const dt = (newTime - currentTime) / 1000;
-    currentTime = newTime;
-    time.update(dt);
+    
 
 
 
-    if (world.initialized) physics.update(dt);
-    graphics.update(dt, player);
-    world.update(dt)
 
 
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
+    let currentTime = performance.now();
+    render();
+
+    function render() {
+        const newTime = performance.now();
+        const dt = (newTime - currentTime) / 1000;
+        currentTime = newTime;
+        time.update(dt);
+    
+    
+    
+        if (world.initialized) physics.update(dt);
+        graphics.update(dt, player);
+        world.update(dt)
+    
+    
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+    }
 }
+
+main();

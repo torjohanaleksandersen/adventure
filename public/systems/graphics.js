@@ -27,8 +27,12 @@ export class Graphics {
         this.scene.add(this.sun);
         this.scene.add(this.sun.target);
 
+
+        this.moon = new THREE.DirectionalLight(0xffffff, 0.1);
+        this.scene.add(this.moon);
+
         //fog
-        this.scene.fog = new THREE.Fog(0xD7D0FF, 100, 200);
+        //this.scene.fog = new THREE.Fog(0xD7D0FF, 100, 200);
 
         //sky
         this.sky = new Sky();
@@ -48,17 +52,24 @@ export class Graphics {
         const phi = MathUtils.degToRad( time.getTime());
         const theta = MathUtils.degToRad( 180 );
         const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi, theta );
+        const moonPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi + Math.PI, theta );
 
         this.sun.position.copy(player.position);
         this.sun.position.add(sunPosition.clone().multiplyScalar(450000));
         this.sun.target.position.copy(player.position);
 
+        this.moon.position.copy(player.position);
+        this.moon.position.add(moonPosition.clone().multiplyScalar(450000));
+        this.moon.target.position.copy(player.position);
+
         this.sky.material.uniforms.sunPosition.value = sunPosition;
 
         if (time.isNight()) {
             this.sun.intensity = 0;
+            this.moon.intensity = 0.1
         } else {
             this.sun.intensity = 1;
+            this.moon.intensity = 0;
         }
     }
 }

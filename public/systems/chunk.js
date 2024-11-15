@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import { terrain } from './terrain.js';
+import { models } from '../main.js';
+import { modelData } from '../data/models.js'
 
 
 
@@ -20,7 +22,7 @@ export class Chunk extends THREE.Object3D {
         for (let x = 0; x <= this.gridSize; x++) {
             this.heightMap[x] = [];
             for (let z = 0; z <= this.gridSize; z++) {
-                const frequency = 0.02;
+                const frequency = 0.015;
                 const amplitude = 3;
                 const worldX = (this.gridSize * this.x) + x;
                 const worldZ = (this.gridSize * this.z) - z;
@@ -32,6 +34,79 @@ export class Chunk extends THREE.Object3D {
 
         this.buildTerrain()
     }
+
+    forEachVertex(callback) {
+        const position = this.Collider.geometry.attributes.position;
+
+        for (let i = 0; i < position.count; i += 3) {
+            const x = position.array[i * 3];
+            const y = position.array[i * 3 + 2];
+            const z = position.array[i * 3 + 1];
+
+            callback({
+                x: x, 
+                y: y, 
+                z: -z
+            });
+        }
+    }
+
+    addNatureAssets() {
+        this.forEachVertex(v => {
+            const {x, y, z} = v;
+
+            if (y > 3 || y < 1) return;
+
+            const nature = {
+                'Tree0': [0.0, 0.005],
+                'Tree1': [0.005, 0.010],
+                'Rock0': [0.015, 0.03],
+            }
+
+            const RNG = terrain.RNG(this.x * this.size + x, this.z * this.size + z)
+
+            let key = ''
+            for (const _key_ in nature) {
+                if (RNG > nature[_key_][0] && RNG < nature[_key_][1]) {
+                    key = _key_;
+                }
+            }
+            if (key == '') return;
+
+            const lod = new THREE.LOD();
+            const H = new THREE.Group();
+            const M = new THREE.Group();
+            const L = new THREE.Group();
+
+            const Hmodel = models.getModel(key + '_H');
+            Hmodel.forEach(obj => {
+                H.add(obj);
+            })
+            const Mmodel = models.getModel(key + '_M');
+            Mmodel.forEach(obj => {
+                M.add(obj);
+            })
+            const Lmodel = models.getModel(key + '_L');
+            Lmodel.forEach(obj => {
+                L.add(obj);
+            })
+
+
+            lod.addLevel(H, 50);
+            lod.addLevel(M, 60);
+            lod.addLevel(L, 70);
+
+
+            let pos = new THREE.Vector3(...modelData[key].position).add(new THREE.Vector3(x, y, z));
+            lod.position.copy(pos);
+            lod.scale.setScalar(modelData[key].scaleScalar);
+            lod.rotation.y = Math.random() * 2 * Math.PI;
+            lod.updateMatrix();
+            lod.matrixAutoUpdate = false;
+            this.add(lod);
+        })
+    }
+    
 
     buildTerrain() {
         const geometry = new THREE.BufferGeometry();
@@ -52,7 +127,7 @@ export class Chunk extends THREE.Object3D {
 
                 const grassLevel = 0.5 + (Math.random() * 0.02 - 0.01);
                 const mountainLevel = 5 + (Math.random() * 0.5 - 1);
-                const snowlevel = 10 + (Math.random() * 0.5 - 1);
+                const snowlevel = 20 + (Math.random() * 0.5 - 1);
 
                 let color1 = new THREE.Color();
                 let color2 = new THREE.Color();
@@ -116,11 +191,13 @@ export class Chunk extends THREE.Object3D {
         mesh.rotation.x = - Math.PI / 2;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        this.add(mesh);
-        
+
+        this.add(mesh)
+
         setTimeout(() => {
             this.initialized = true;
-        }, 200)
+            this.addNatureAssets()
+        }, 100)
     }
 
     get Collider() {
