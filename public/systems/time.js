@@ -2,7 +2,7 @@
 export class Time {
     constructor () {
         this.time = 0;
-        this.tickSpeed = 10;
+        this.tickSpeed = 1;
         this.deltaTime = 0;
     }
 
