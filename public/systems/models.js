@@ -1,14 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 import { SimplifyModifier } from '../imports/three/examples/jsm/Addons.js';
+import { modelData } from '../data/models.js';
 
 
-
-const models = [
-    'Tree0',
-    'Tree1',
-    'Rock0'
-]
 
 const modifier = new SimplifyModifier()
 const manager = new THREE.LoadingManager();
@@ -27,7 +22,7 @@ export class Models {
 
     loadModel(name, LOD = 1) {
         return new Promise((resolve, reject) => {
-            loader.load(name + '.glb', gltf => {
+            loader.load(modelData[name].path + name + '.glb', gltf => {
                 const model = gltf.scene;
                 const subModels = [];
                 model.traverse(obj => {
@@ -35,8 +30,9 @@ export class Models {
                         if (LOD < 1 && LOD > 0 && obj.geometry){ 
                             obj.geometry = modifier.modify(obj.geometry, Math.floor(obj.geometry.attributes.position.count * LOD))
                         };
-                        obj.material = obj.material.clone();
-                        obj.material.needsUpdate = true;
+                        obj.castShadow = true;
+                        obj.receiveShadow = true;
+                        //obj.material = new THREE.MeshLambertMaterial({color: obj.material.color});
                         subModels.push(obj);
                     }
                 })
@@ -48,13 +44,16 @@ export class Models {
 
     async loadAllModels() {
         try {
-            await Promise.all([
-                this.loadModel('Tree0'),
-                this.loadModel('Tree0', 0.5),
-                this.loadModel('Tree0', 0.3),
-                this.loadModel('Rock0'),
-                this.loadModel('Rock0', 0.5),
-            ]);
+            const elements = [];
+            for (const name in modelData) {
+                for (const level in modelData[name].LOD) {
+                    if (modelData[name].LOD[level].geometry == 0) continue; //if it has 100% geometry reduction
+                    elements.push({name: name, LOD: modelData[name].LOD[level].geometry});
+                }
+            }
+            await Promise.all(
+                elements.map(model => this.loadModel(model.name, model.LOD))
+            );
         } catch (error) {
             console.error('Error loading models: ', error);
         }

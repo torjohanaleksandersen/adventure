@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { terrain } from './terrain.js';
-import { models } from '../main.js';
+import { grid, models } from '../main.js';
 import { modelData } from '../data/models.js'
 
 
@@ -38,7 +38,7 @@ export class Chunk extends THREE.Object3D {
     forEachVertex(callback) {
         const position = this.Collider.geometry.attributes.position;
 
-        for (let i = 0; i < position.count; i += 3) {
+        for (let i = 0; i < position.count; i += 6) {
             const x = position.array[i * 3];
             const y = position.array[i * 3 + 2];
             const z = position.array[i * 3 + 1];
@@ -55,23 +55,44 @@ export class Chunk extends THREE.Object3D {
         this.forEachVertex(v => {
             const {x, y, z} = v;
 
-            if (y > 3 || y < 1) return;
+            if (y > 3.3 || y < 0.3) return;
 
             const nature = {
-                'Tree0': [0.0, 0.005],
-                'Tree1': [0.005, 0.010],
-                'Rock0': [0.015, 0.03],
-            }
+                'trees': [
+                    [0.00, 0.0075],
+                    [0.025, 0.0325],
+                    [0.05, 0.0575],
+                    //[0.075, 0.0825]
+                ],
+                'rocks': [
+                    [0.1, 0.11]
+                ],
+            };
+    
+            const RNG = terrain.RNG(
+                (this.x * this.size + x) + (z % 7) * 13.37, 
+                (this.z * this.size + z) + (x % 5) * 19.91
+            );
 
-            const RNG = terrain.RNG(this.x * this.size + x, this.z * this.size + z)
 
-            let key = ''
+            let key = '';
             for (const _key_ in nature) {
-                if (RNG > nature[_key_][0] && RNG < nature[_key_][1]) {
-                    key = _key_;
+                for (const [start, end] of nature[_key_]) {
+                    if (RNG > start && RNG < end) {
+                        const arr = Object.entries(modelData)
+                            .filter(([key, value]) => value.path.includes(_key_))
+                            .map(([key]) => key);
+                        key = arr[Math.floor(Math.random() * arr.length)];
+                        break;
+                    }
                 }
+                if (key) break; // Stop if a match is found
             }
             if (key == '') return;
+
+            const data = modelData[key];
+
+            if (data.needsSpace && !grid.isSpace({x: this.x, z: this.z, size: this.size}, x, z, data.size, data.size)) return;
 
             const lod = new THREE.LOD();
             const H = new THREE.Group();
@@ -91,19 +112,26 @@ export class Chunk extends THREE.Object3D {
                 L.add(obj);
             })
 
+            const maxRenderDistance = data.maxRenderDistance;
+            if (maxRenderDistance > 0) {
+                lod.addLevel(new THREE.Object3D(), maxRenderDistance);
+            }
+            
 
-            lod.addLevel(H, 50);
-            lod.addLevel(M, 60);
-            lod.addLevel(L, 70);
+            if (H.children.length > 0) lod.addLevel(H, data.LOD.H.distance);
+            if (M.children.length > 0) lod.addLevel(M, data.LOD.M.distance);
+            if (L.children.length > 0) lod.addLevel(L, data.LOD.L.distance);
 
-
-            let pos = new THREE.Vector3(...modelData[key].position).add(new THREE.Vector3(x, y, z));
+            let pos = new THREE.Vector3(...data.position).add(new THREE.Vector3(x, y, z));
+            
             lod.position.copy(pos);
-            lod.scale.setScalar(modelData[key].scaleScalar);
-            lod.rotation.y = Math.random() * 2 * Math.PI;
+            lod.rotation.set(...data.rotation);
+            lod.scale.setScalar(data.scaleScalar);
+            lod.rotation.y += Math.random() * 2 * Math.PI;
             lod.updateMatrix();
             lod.matrixAutoUpdate = false;
             this.add(lod);
+            grid.registerNewObject({x: this.x, z: this.z}, x, z, data.size, data.size)
         })
     }
     

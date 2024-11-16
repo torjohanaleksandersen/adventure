@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 import { Chunk } from './chunk.js'
-import { time } from '../main.js';
+import { grid, time } from '../main.js';
 import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 
 const CHUNK_SIZE = 50;
 const CHUNK_GRID_SIZE = 50;
-const DRAW_RANGE = 6;
+const DRAW_RANGE = 4;
 const PHYSICS_DISTANCE = 2
 const WORLD_SIZE = CHUNK_SIZE * (DRAW_RANGE * 2 - 1);
 const WORLD_GRID_SIZE = CHUNK_GRID_SIZE * (DRAW_RANGE * 2 - 1);
@@ -63,6 +63,7 @@ export class World extends THREE.Group {
 
         chunk.position.set(x * (CHUNK_SIZE), 0, z * (CHUNK_SIZE));
         this.add(chunk);
+        grid.setChunk(x, z);
         if (collidable) this.pendingChunksToRigidBodies.add(chunk);
     }
 
@@ -81,7 +82,7 @@ export class World extends THREE.Group {
         if (!this.waterMesh) return
         const position = this.waterMesh.geometry.attributes.position;
 
-        for (let i = 0; i < position.count; i++) {
+        for (let i = 0; i < position.count; i += 1) {
             const x = position.array[i * 3];
             const z = position.array[i * 3 + 1];
 
@@ -179,6 +180,10 @@ export class World extends THREE.Group {
         })
 
         chunksToRemove.forEach(key => {
+            const [x, z] = key.split(',');
+
+            grid.deleteChunk(x, z);
+
             this.remove(this.chunks.get(key))
             this.chunks.delete(key);
         })

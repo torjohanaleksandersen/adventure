@@ -7,6 +7,9 @@ import { Graphics } from './systems/graphics.js';
 import { World } from './systems/world.js';
 import { Time } from './systems/time.js';
 import { Models } from './systems/models.js';
+import { GLTFLoader } from './imports/three/examples/jsm/Addons.js';
+import { Grid } from './systems/grid.js';
+import { terrain } from './systems/terrain.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -27,21 +30,19 @@ document.addEventListener('mousedown', () => {
 export const inputs = new Inputs(camera, renderer)
 export const time = new Time();
 export const models = new Models();
+export const grid = new Grid();
 
 async function main() {
     await models.loadAllModels();
 
     const physics = new Physics(scene);
+    const graphics = new Graphics(scene);
 
-    const player = new Player(camera, scene);
+    const player = new Player(camera);
     physics.addRigidBody(player);
     
-    const graphics = new Graphics(scene);
-    
-    const world = new World(physics, player)
-    scene.add(world)
-
-    
+    const world = new World(physics, player);
+    scene.add(world);
 
 
 

@@ -9,7 +9,7 @@ import { RigidBody } from "./rigidBody.js";
 
 
 export class Player extends RigidBody {
-    constructor (camera, scene) {
+    constructor (camera) {
         super()
         this.camera = camera
 
@@ -67,27 +67,34 @@ export class Player extends RigidBody {
 
     move() {
         const forward = this.getForwardVector();
-        forward.y = 0;
+        forward.y = 0; // Ensure movement is restricted to the horizontal plane
+        forward.normalize(); // Normalize to ensure consistent magnitude
+    
         const side = this.getSideVector();
-        side.y = 0
-
-        const k = 10
-        const moveVector = new THREE.Vector3(0, 0, 0);
-        if (this.moveInputs.w === true) {
-            moveVector.add(forward.multiplyScalar(k))
+        side.y = 0;
+        side.normalize();
+    
+        const k = 10; // Movement speed
+        const moveVector = new THREE.Vector3();
+    
+        // Use clones to prevent modifying original vectors
+        if (this.moveInputs.w) {
+            moveVector.add(forward.clone().multiplyScalar(k));
         }
-        if (this.moveInputs.s === true) {
-            moveVector.add(forward.multiplyScalar(- k))
+        if (this.moveInputs.s) {
+            moveVector.add(forward.clone().multiplyScalar(-k));
         }
-        if (this.moveInputs.d === true) {
-            moveVector.add(side.multiplyScalar(k))
+        if (this.moveInputs.d) {
+            moveVector.add(side.clone().multiplyScalar(k));
         }
-        if (this.moveInputs.a === true) {
-            moveVector.add(side.multiplyScalar(- k))
+        if (this.moveInputs.a) {
+            moveVector.add(side.clone().multiplyScalar(-k));
         }
+    
         this.velocity.x = moveVector.x;
         this.velocity.z = moveVector.z;
     }
+    
 
     update(dt) {
         this.move()

@@ -101,12 +101,14 @@ class Terrain {
     }
 
     RNG(x, z) {
-        const seed = x * 374761393 + z * 668265263; // large primes
-        let t = (seed ^ (seed >> 13)) * 1274126177;
-        t = (t ^ (t >> 16)) * 2117566807;
-        t = t ^ (t >> 15);
-        return (t & 0x7fffffff) / 0x7fffffff; // returns a float between 0 and 1
+        const seed = x * 0x1f1f1f1f + z * 0x1f1f1f1f;
+
+        const hash = (seed ^ (seed >>> 16)) * 0x45d9f3b;
+        const result = (hash ^ (hash >>> 16)) * 0x45d9f3b;
+
+        return (result & 0xFFFFFFF) / 0xFFFFFFF;
     }
+    
     
 
     getColor(typeTerrain = '') {
