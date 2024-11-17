@@ -52,6 +52,7 @@ export class Chunk extends THREE.Object3D {
     }
 
     addNatureAssets() {
+        let group = new THREE.Group();
         this.forEachVertex(v => {
             const {x, y, z} = v;
 
@@ -61,12 +62,15 @@ export class Chunk extends THREE.Object3D {
                 'trees': [
                     [0.00, 0.0075],
                     [0.025, 0.0325],
-                    [0.05, 0.0575],
+                    //[0.05, 0.0575],
                     //[0.075, 0.0825]
                 ],
                 'rocks': [
-                    [0.1, 0.11]
+                    [0.1, 0.105]
                 ],
+                'bushes': [
+                    [0.99, 1]
+                ]
             };
     
             const RNG = terrain.RNG(
@@ -130,9 +134,15 @@ export class Chunk extends THREE.Object3D {
             lod.rotation.y += Math.random() * 2 * Math.PI;
             lod.updateMatrix();
             lod.matrixAutoUpdate = false;
-            this.add(lod);
+            group.add(lod);
             grid.registerNewObject({x: this.x, z: this.z}, x, z, data.size, data.size)
         })
+
+        this.add(group);
+
+        setTimeout(() => {
+            this.initialized = true;
+        }, 100)
     }
     
 
@@ -223,12 +233,15 @@ export class Chunk extends THREE.Object3D {
         this.add(mesh)
 
         setTimeout(() => {
-            this.initialized = true;
             this.addNatureAssets()
         }, 100)
     }
 
     get Collider() {
         return this.children[0]
+    }
+
+    get CollidableAssets() {
+        return this.children[1];
     }
 }

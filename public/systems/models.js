@@ -14,29 +14,37 @@ export class Models {
         this.models = {};
     }
 
-    getKey(name, LOD = 1) {
-        if (LOD === 1) return `${name}_H`;
-        else if (LOD >= 0.5) return `${name}_M`;
-        else return `${name}_L`;
-    }
-
-    loadModel(name, LOD = 1) {
+    loadModel(name, geometry = 1, LOD) {
         return new Promise((resolve, reject) => {
             loader.load(modelData[name].path + name + '.glb', gltf => {
                 const model = gltf.scene;
                 const subModels = [];
                 model.traverse(obj => {
                     if (obj.isMesh && obj.material) {
-                        if (LOD < 1 && LOD > 0 && obj.geometry){ 
-                            obj.geometry = modifier.modify(obj.geometry, Math.floor(obj.geometry.attributes.position.count * LOD))
+                        if (geometry < 1 && geometry > 0 && obj.geometry){ 
+                            obj.geometry = modifier.modify(obj.geometry, Math.floor(obj.geometry.attributes.position.count * geometry))
                         };
                         obj.castShadow = true;
                         obj.receiveShadow = true;
-                        //obj.material = new THREE.MeshLambertMaterial({color: obj.material.color});
+                        /*
+                        if (!(obj.material instanceof THREE.MeshLambertMaterial)) {
+                            obj.material = new THREE.MeshLambertMaterial({
+                                color: obj.material.color,
+                                map: obj.material.map,
+                                transparent: obj.material.transparent,
+                                opacity: obj.material.opacity,
+                                side: obj.material.side,
+                                emissive: obj.material.emissive,
+                                emissiveMap: obj.material.emissiveMap,
+                                emissiveIntensity: obj.material.emissiveIntensity,
+                                envMap: obj.material.envMap,
+                            });
+                        }
+                        */
                         subModels.push(obj);
                     }
                 })
-                this.models[this.getKey(name, LOD)] = subModels;
+                this.models[name + '_' + LOD] = subModels;
                 resolve(gltf);
             }, undefined, (error) => reject(error));
         })
@@ -48,11 +56,11 @@ export class Models {
             for (const name in modelData) {
                 for (const level in modelData[name].LOD) {
                     if (modelData[name].LOD[level].geometry == 0) continue; //if it has 100% geometry reduction
-                    elements.push({name: name, LOD: modelData[name].LOD[level].geometry});
+                    elements.push({name: name, LOD: modelData[name].LOD[level].geometry, level: level});
                 }
             }
             await Promise.all(
-                elements.map(model => this.loadModel(model.name, model.LOD))
+                elements.map(model => this.loadModel(model.name, model.LOD, model.level))
             );
         } catch (error) {
             console.error('Error loading models: ', error);

@@ -212,6 +212,14 @@ export class World extends THREE.Group {
         this.pendingChunksToRigidBodies.forEach(chunk => {
             if (chunk.initialized) {
                 this.physics.addMeshCollider(chunk.Collider);
+                
+                /*
+                chunk.CollidableAssets.children.forEach(collider => {
+                    collider.levels[0].object.children.forEach(child => {
+                        this.physics.addMeshCollider(child);
+                    })
+                })
+                */
                 this.pendingChunksToRigidBodies.delete(chunk);
             } else {
                 allChunksInitialized = false;
