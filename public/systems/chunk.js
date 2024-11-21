@@ -22,17 +22,34 @@ export class Chunk extends THREE.Object3D {
         for (let x = 0; x <= this.gridSize; x++) {
             this.heightMap[x] = [];
             for (let z = 0; z <= this.gridSize; z++) {
-                const frequency = 0.015;
+                const normalizedX = x / this.gridSize; // Normalize within the grid
+                const normalizedZ = - z / this.gridSize; // Normalize within the grid
+        
+                const worldX = (this.size * this.x) + (normalizedX * this.size); // Map to world coordinates
+                const worldZ = (this.size * this.z) + (normalizedZ * this.size);
+        
+                const frequency = 0.015; // Keep frequency constant
                 const amplitude = 3;
-                const worldX = (this.gridSize * this.x) + x;
-                const worldZ = (this.gridSize * this.z) - z;
-
                 this.heightMap[x][z] = terrain.getY(worldX * frequency, worldZ * frequency) * amplitude;
             }
         }
+        
 
 
         this.buildTerrain()
+    }
+
+    updateLOD(chunkDistFromPlayer, natureDrawRange) {
+        const natureAssets = this.NatureAssets;
+        if (chunkDistFromPlayer < natureDrawRange) {
+            if (natureAssets === null) {
+                this.addNatureAssets();
+            }
+        } else {
+            if (natureAssets !== null) {
+                this.remove(natureAssets);
+            }
+        }
     }
 
     forEachVertex(callback) {
@@ -62,7 +79,7 @@ export class Chunk extends THREE.Object3D {
                 'trees': [
                     [0.00, 0.0075],
                     [0.025, 0.0325],
-                    //[0.05, 0.0575],
+                    [0.05, 0.0575],
                     //[0.075, 0.0825]
                 ],
                 'rocks': [
@@ -138,11 +155,8 @@ export class Chunk extends THREE.Object3D {
             grid.registerNewObject({x: this.x, z: this.z}, x, z, data.size, data.size)
         })
 
+        group.name = 'nature_assets'
         this.add(group);
-
-        setTimeout(() => {
-            this.initialized = true;
-        }, 100)
     }
     
 
@@ -233,7 +247,7 @@ export class Chunk extends THREE.Object3D {
         this.add(mesh)
 
         setTimeout(() => {
-            this.addNatureAssets()
+            this.initialized = true;
         }, 100)
     }
 
@@ -241,7 +255,13 @@ export class Chunk extends THREE.Object3D {
         return this.children[0]
     }
 
-    get CollidableAssets() {
-        return this.children[1];
+    get NatureAssets() {
+        let group = null;
+        this.children.forEach(obj => {
+            if (obj.name == 'nature_assets') {
+                group = obj;
+            }
+        })
+        return group;
     }
 }

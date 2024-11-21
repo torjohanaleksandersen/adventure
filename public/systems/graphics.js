@@ -1,7 +1,8 @@
 import * as THREE from 'three'
-import { Sky } from '../imports/three/examples/jsm/Addons.js';
+import { Sky } from '../imports/Sky.js';
 import { MathUtils } from '../imports/MathUtils.js';
 import { time } from '../main.js';
+import { CHUNK_SIZE, DRAW_RANGE } from './world.js';
 
 
 export class Graphics {
@@ -32,7 +33,7 @@ export class Graphics {
         this.scene.add(this.moon);
 
         //fog
-        this.scene.fog = new THREE.Fog(0xffffff, 100, 180);
+        this.scene.fog = new THREE.Fog(0xffffff, DRAW_RANGE * CHUNK_SIZE * 0.5, DRAW_RANGE * CHUNK_SIZE * 0.85); //100, 180
 
         //sky
         this.sky = new Sky();
@@ -59,40 +60,48 @@ export class Graphics {
     
         this.sky.material.uniforms.sunPosition.value = sunPosition;
     
-        const diurnal = Math.abs(time.DiurnalCycleValue);
+        const diurnal = time.DiurnalCycleValue;
     
         // Smoothly transition fog density
-        this.scene.fog.density = 0.005 * (1 - diurnal);
+        this.scene.fog.density = 0.002 + 0.003 * (1 - Math.abs(diurnal));
+        
     
         // Define fog color targets
         const dayFogColor = new THREE.Color(0xffffff); // White for day
-        const redFogColor = new THREE.Color(0xff4500); // Red for sunrise/sunset
-        const nightFogColor = new THREE.Color(0x000000); // Black for night
+        const sunRiseSetColor = new THREE.Color(0xcbb395); // Sunrise/Sunset color
+        const nightFogColor = new THREE.Color(0x3d363f); // Brown or black for night
     
         // Determine target fog color
         let targetFogColor;
+        let transitionTimeConstant = 0
         if (time.isNight()) {
             targetFogColor = nightFogColor;
-        } else if (diurnal < 0.2) {
-            // Blend towards red at sunrise/sunset
-            const redFactor = 1 - diurnal * 2; // Ranges from 1 to 0 as diurnal approaches 0.5
-            targetFogColor = redFogColor.clone().lerp(dayFogColor, redFactor);
+            transitionTimeConstant = 1
+        } else if (diurnal < 0.09 && diurnal > - 0.75 ) {
+            // Transition at sunrise/sunset
+            targetFogColor = sunRiseSetColor;
+            transitionTimeConstant = 1
         } else {
             targetFogColor = dayFogColor;
+            transitionTimeConstant = 1
         }
+    
+        // Adjust the transition speed (make it longer)
+        // Use a smoother transition factor (lower value for slower transition)
+        const transitionSpeed = transitionTimeConstant * time.tickSpeed;  // This value controls the speed of the transition (lower is slower)
+        const lerpFactor = Math.min(dt * transitionSpeed, 1); // Adjust smoothing speed
     
         // Smoothly interpolate current fog color towards the target color
-        const lerpFactor = Math.min(dt * 5, 1); // Adjust smoothing speed
         this.scene.fog.color.lerpColors(this.scene.fog.color, targetFogColor, lerpFactor);
     
+        // Adjust sun and moon intensity based on time of day
         if (time.isNight()) {
             this.sun.intensity = 0;
-            this.moon.intensity = 0.1 * diurnal;
+            this.moon.intensity = 0.1 * Math.abs(diurnal);
         } else {
-            this.sun.intensity = 2 * diurnal;
+            this.sun.intensity = 2 * Math.abs(diurnal);
             this.moon.intensity = 0;
         }
+        
     }
-    
-    
 }

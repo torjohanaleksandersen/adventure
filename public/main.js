@@ -23,6 +23,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
 const controls = new PointerLockControls(camera, renderer.domElement);
+controls.pointerSpeed = 0.5
 document.addEventListener('mousedown', () => {
     controls.lock();
 })
@@ -49,6 +50,10 @@ async function main() {
 
 
     let currentTime = performance.now();
+    let lastFpsTime = performance.now();
+    let frameCount = 0;
+    let fps = 0;
+
     render();
 
     function render() {
@@ -56,17 +61,24 @@ async function main() {
         const dt = (newTime - currentTime) / 1000;
         currentTime = newTime;
         time.update(dt);
-    
-    
-    
+
         if (world.initialized) physics.update(dt);
         graphics.update(dt, player);
-        world.update(dt)
-    
-    
+        world.update(dt);
+
+        // Update FPS every second
+        frameCount++;
+        if (newTime - lastFpsTime >= 1000) { // 1000ms = 1 second
+            fps = frameCount;
+            frameCount = 0;
+            lastFpsTime = newTime;
+            //console.log(`FPS: ${fps}`);
+        }
+
         renderer.render(scene, camera);
         requestAnimationFrame(render);
     }
+
 }
 
 main();

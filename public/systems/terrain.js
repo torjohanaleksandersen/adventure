@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { createNoise2D } from '../imports/simplex-noise/dist/esm/simplex-noise.js';
 
-const grass = [
+/* const grass = [
     0x11330e, // Base color
     0x0f2e0c, // Darker, less red
     0x0e2f0e, // Slightly more green
@@ -12,6 +12,19 @@ const grass = [
     0x0e2d0f, // A bit lighter
     0x0d2f10, // Darker, more neutral
     0x13330f, // Slightly richer
+];
+ */
+const grass = [
+    0x194417, // Base color, slightly lighter
+    0x153a11, // Darker, less red, but lighter than original
+    0x143a14, // Slightly more green and brighter
+    0x1a4516, // Slightly brighter
+    0x174018, // A bit more blue and brighter
+    0x154515, // Slightly less green but brighter
+    0x1a4018, // Redder shade and lighter
+    0x143815, // A bit lighter
+    0x133a18, // Darker, more neutral, but lighter
+    0x1b4518, // Slightly richer and lighter
 ];
 
 const sand = [

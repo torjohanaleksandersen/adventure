@@ -22,6 +22,7 @@ export const modelData = {
             geometry: 0.3}
         }
     },
+    */
     
     'big-round-tree': {
         position: [0, 2, 0],
@@ -46,7 +47,7 @@ export const modelData = {
             }
         }
     },
-    */
+    
     /*
     'birch-tree': {
         position: [0, 0, 0],
@@ -69,7 +70,8 @@ export const modelData = {
             distance: 1002
             geometry: 0.3}
         }
-    },    
+    },   
+     
     'dead-tree': {
         position: [0, 3, 0],
         rotation: [0, 0, 0],
@@ -94,6 +96,7 @@ export const modelData = {
         }
     },
     */
+    
     
     'google-standard-tree': {
         position: [0, 0, 0],
@@ -163,9 +166,9 @@ export const modelData = {
         }
     },
     
-    /*
+    
     'big-rock': {
-        position: [0, -1, 0],
+        position: [0, 0, 0],
         rotation: [0, 0, 0],
         scaleScalar: 3,
         path: 'rocks/',
@@ -178,16 +181,16 @@ export const modelData = {
                 geometry: 1,
             },
             M: {
-                distance: 30,
+                distance: 40,
                 geometry: 0.5,
             },
             L: {
-                distance: 60,
+                distance: 100,
                 geometry: 0.8
             }
         }
-    }
-    */
+    },
+    
 
     'small-bush-1': {
         position: [0, 0, 0],

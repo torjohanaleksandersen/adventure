@@ -1,12 +1,12 @@
 import * as THREE from 'three'
 import { Chunk } from './chunk.js'
 import { grid, time } from '../main.js';
-import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 
-const CHUNK_SIZE = 50;
+export const CHUNK_SIZE = 50;
 const CHUNK_GRID_SIZE = 50;
-const DRAW_RANGE = 4;
-const PHYSICS_DISTANCE = 2
+export const DRAW_RANGE = 5;
+const PHYSICS_DISTANCE = 2;
+const NATURE_DRAW_RANGE = 3;
 const WORLD_SIZE = CHUNK_SIZE * (DRAW_RANGE * 2 - 1);
 const WORLD_GRID_SIZE = CHUNK_GRID_SIZE * (DRAW_RANGE * 2 - 1);
 
@@ -28,10 +28,7 @@ export class World extends THREE.Group {
         }
 
         this.addWater()
-
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshLambertMaterial({color: 0xff8921});
-        const mesh = new THREE.Mesh(geometry, material);
+        this.updateChunksPlayerDistance()
     }
 
     forEachVertex(callback) {
@@ -55,6 +52,31 @@ export class World extends THREE.Group {
                 });
             }
         });
+    }
+
+    updateChunksPlayerDistance() {
+        const playerChunkX = Math.ceil((this.player.position.x - CHUNK_SIZE / 2) / CHUNK_SIZE);
+        const playerChunkZ = Math.ceil((this.player.position.z - CHUNK_SIZE / 2) / CHUNK_SIZE);
+    
+        const startX = playerChunkX - DRAW_RANGE + 1;
+        const endX = playerChunkX + DRAW_RANGE;
+        const startZ = playerChunkZ - DRAW_RANGE + 1;
+        const endZ = playerChunkZ + DRAW_RANGE;
+    
+        for (let x = startX; x < endX; x++) {
+            for (let z = startZ; z < endZ; z++) {
+                const chunkKey = `${x},${z}`;
+                if (this.chunks.has(chunkKey)) {
+                    const chunk = this.chunks.get(chunkKey);
+                    const d = {
+                        x: Math.abs(chunk.x - playerChunkX),
+                        z: Math.abs(chunk.z - playerChunkZ)
+                    }
+                    const distance = Math.max(d.x, d.z);
+                    chunk.updateLOD(distance, NATURE_DRAW_RANGE);
+                }
+            }
+        }
     }
 
     generateChunk(x, z, collidable = true) {
@@ -198,6 +220,8 @@ export class World extends THREE.Group {
         const playerChunkZ = Math.ceil((this.player.position.z - CHUNK_SIZE / 2) / CHUNK_SIZE);
 
         this.waterMesh.position.set(playerChunkX, 0, playerChunkZ).multiplyScalar(CHUNK_SIZE)
+
+        this.updateChunksPlayerDistance()
 
         this.initialized = false;
     }
