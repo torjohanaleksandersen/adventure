@@ -2,9 +2,8 @@ import * as THREE from 'three'
 import { FBXLoader } from '../imports/FBXLoader/FBXLoader.js'
 
 const animations = [
-    'dance',
-    'reload',
-    'run'
+    'idle',
+    'walking'
 ]
 
 export class Animator {

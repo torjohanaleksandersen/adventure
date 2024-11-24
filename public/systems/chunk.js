@@ -18,7 +18,6 @@ export class Chunk extends THREE.Object3D {
         this.heightMap = [];
 
 
-
         for (let x = 0; x <= this.gridSize; x++) {
             this.heightMap[x] = [];
             for (let z = 0; z <= this.gridSize; z++) {
@@ -27,17 +26,75 @@ export class Chunk extends THREE.Object3D {
         
                 const worldX = (this.size * this.x) + (normalizedX * this.size); // Map to world coordinates
                 const worldZ = (this.size * this.z) + (normalizedZ * this.size);
-        
-                const frequency = 0.015; // Keep frequency constant
-                const amplitude = 3;
-                this.heightMap[x][z] = terrain.getY(worldX * frequency, worldZ * frequency) * amplitude;
+
+                this.heightMap[x][z] = terrain.getY(worldX, worldZ);
             }
         }
         
 
 
         this.buildTerrain()
+
+
+        setTimeout(() => {
+            //this.updateBasedOnSeason()
+        }, 1000)
     }
+
+    updateBasedOnSeason() {
+        if (!this.NatureAssets) return;
+        const season = 'winter';
+    
+        if (season === 'winter') {
+            this.NatureAssets.children.forEach(LOD => {
+                LOD.traverse(mesh => {
+                    if (mesh.isMesh && mesh.geometry) {
+                        // Convert to non-indexed geometry for face-based coloring
+                        const geometry = mesh.geometry.toNonIndexed();
+                        geometry.computeVertexNormals(); // Ensure normals are available
+    
+                        const positions = geometry.attributes.position.array;
+                        const normals = geometry.attributes.normal.array;
+                        const faceCount = positions.length / 9; // Each face has 3 vertices (9 values)
+                        const colors = new Float32Array(faceCount * 9); // 9 values per face (3 vertices x RGB)
+    
+                        for (let faceIndex = 0; faceIndex < faceCount; faceIndex++) {
+                            // Calculate the face normal (average of the three vertex normals)
+                            const normalX = normals[faceIndex * 9];
+                            const normalY = normals[faceIndex * 9 + 1];
+                            const normalZ = normals[faceIndex * 9 + 2];
+    
+                            // Determine face color based on normal orientation
+                            let color = { r: 0.5, g: 0.5, b: 0.5 }; // Default grey
+                            if (normalY > 0.1 && Math.abs(normalX) < 0.8 && Math.abs(normalZ) < 0.8) {
+                                color = { r: 1, g: 1, b: 1 }; // Top-facing face: white
+                            }
+    
+                            // Assign the color to all 3 vertices of this face
+                            for (let i = 0; i < 3; i++) {
+                                const vertexIndex = faceIndex * 9 + i * 3;
+                                colors[vertexIndex] = color.r;
+                                colors[vertexIndex + 1] = color.g;
+                                colors[vertexIndex + 2] = color.b;
+                            }
+                        }
+    
+                        // Apply the colors to the geometry
+                        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                        geometry.attributes.color.needsUpdate = true;
+    
+                        // Use a material that supports face colors
+                        mesh.material = new THREE.MeshLambertMaterial({
+                            vertexColors: true,
+                            flatShading: true, // Ensures no smooth shading between faces
+                        });
+                    }
+                });
+            });
+        }
+    }
+    
+    
 
     updateLOD(chunkDistFromPlayer, natureDrawRange) {
         const natureAssets = this.NatureAssets;
@@ -47,6 +104,7 @@ export class Chunk extends THREE.Object3D {
             }
         } else {
             if (natureAssets !== null) {
+                grid.deleteChunkData(this.x, this.z);
                 this.remove(natureAssets);
             }
         }
@@ -80,7 +138,7 @@ export class Chunk extends THREE.Object3D {
                     [0.00, 0.0075],
                     [0.025, 0.0325],
                     [0.05, 0.0575],
-                    //[0.075, 0.0825]
+                    [0.075, 0.0825]
                 ],
                 'rocks': [
                     [0.1, 0.105]
@@ -103,7 +161,9 @@ export class Chunk extends THREE.Object3D {
                         const arr = Object.entries(modelData)
                             .filter(([key, value]) => value.path.includes(_key_))
                             .map(([key]) => key);
-                        key = arr[Math.floor(Math.random() * arr.length)];
+
+                        
+                        key = arr[Math.floor(terrain.RNG(x, z) * arr.length)];
                         break;
                     }
                 }
@@ -139,7 +199,7 @@ export class Chunk extends THREE.Object3D {
             }
             
 
-            if (H.children.length > 0) lod.addLevel(H, data.LOD.H.distance);
+            if (H.children.length > 0) lod.addLevel(H, data.LOD.H.distance); 
             if (M.children.length > 0) lod.addLevel(M, data.LOD.M.distance);
             if (L.children.length > 0) lod.addLevel(L, data.LOD.L.distance);
 
@@ -147,15 +207,18 @@ export class Chunk extends THREE.Object3D {
             
             lod.position.copy(pos);
             lod.rotation.set(...data.rotation);
-            lod.scale.setScalar(data.scaleScalar);
-            lod.rotation.y += Math.random() * 2 * Math.PI;
+            if (data.scale) lod.scale.set(...data.scale);
+            else lod.scale.setScalar(1);
+            lod.scale.multiplyScalar(data.scaleScalar);
+            lod.rotation[data.randomRotation] += Math.random() * 2 * Math.PI;
             lod.updateMatrix();
             lod.matrixAutoUpdate = false;
             group.add(lod);
             grid.registerNewObject({x: this.x, z: this.z}, x, z, data.size, data.size)
         })
 
-        group.name = 'nature_assets'
+        group.name = 'nature_assets';
+
         this.add(group);
     }
     
@@ -175,42 +238,9 @@ export class Chunk extends THREE.Object3D {
                 const h4 = this.heightMap[i + 1][j + 1];
 
                 const h_1 = (h1 + h2 + h3) / 3;
-                const h_2 = (h2 + h3 + h4) / 3
+                const h_2 = (h2 + h3 + h4) / 3;
 
-                const grassLevel = 0.5 + (Math.random() * 0.02 - 0.01);
-                const mountainLevel = 5 + (Math.random() * 0.5 - 1);
-                const snowlevel = 20 + (Math.random() * 0.5 - 1);
-
-                let color1 = new THREE.Color();
-                let color2 = new THREE.Color();
-
-                if (h_1 > snowlevel) {
-                    color1.setHex(terrain.getColor('snow'))
-                } else if (h_1 > mountainLevel) {
-                    color1.setHex(terrain.getColor('stone'))
-                } else if (h_1 > mountainLevel - 1) {
-                    color1.setHex(terrain.getColor('mix_grass-stone'))
-                } else if (h_1 > grassLevel) {
-                    color1.setHex(terrain.getColor('grass'));
-                } else if (h_1 > grassLevel - 0.2) {
-                    color1.setHex(terrain.getColor('mix_sand-grass'))
-                } else {
-                    color1.setHex(terrain.getColor('sand'));
-                }
-
-                if (h_2 > snowlevel) {
-                    color2.setHex(terrain.getColor('snow'))
-                } else if (h_2 > mountainLevel) {
-                    color2.setHex(terrain.getColor('stone'))
-                } else if (h_2 > mountainLevel - 1) {
-                    color2.setHex(terrain.getColor('mix_grass-stone'))
-                } else if (h_2 > grassLevel) {
-                    color2.setHex(terrain.getColor('grass'));
-                } else if (h_2 > grassLevel - 0.2) {
-                    color2.setHex(terrain.getColor('mix_sand-grass'))
-                } else {
-                    color2.setHex(terrain.getColor('sand'));
-                }
+                const [color1, color2] = terrain.getTerrainColor(h_1, h_2);
 
                 const x = (i * triangleSize) - (this.size / 2);
                 const z = (j * triangleSize) - (this.size / 2);
@@ -244,6 +274,8 @@ export class Chunk extends THREE.Object3D {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
+        mesh.name = 'terrain';
+
         this.add(mesh)
 
         setTimeout(() => {
@@ -252,16 +284,22 @@ export class Chunk extends THREE.Object3D {
     }
 
     get Collider() {
-        return this.children[0]
+        let mesh = null;
+        this.children.forEach(obj => {
+            if (obj.name == 'terrain') {
+                mesh = obj;
+            }
+        })
+        return mesh;
     }
 
     get NatureAssets() {
-        let group = null;
+        let mesh = null;
         this.children.forEach(obj => {
             if (obj.name == 'nature_assets') {
-                group = obj;
+                mesh = obj;
             }
         })
-        return group;
+        return mesh;
     }
 }

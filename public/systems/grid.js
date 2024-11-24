@@ -17,6 +17,11 @@ export class Grid {
         this.chunks.delete(this.getKey(x, z));
     }
 
+    deleteChunkData(x, z) {
+        this.deleteChunk(x, z);
+        this.setChunk(x, z)
+    }
+
     getKey(x, z) {
         return `${x},${z}`;
     }

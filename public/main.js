@@ -9,7 +9,8 @@ import { Time } from './systems/time.js';
 import { Models } from './systems/models.js';
 import { GLTFLoader } from './imports/three/examples/jsm/Addons.js';
 import { Grid } from './systems/grid.js';
-import { terrain } from './systems/terrain.js';
+import { FBXLoader } from './imports/FBXLoader/FBXLoader.js';
+import { Animator } from './systems/animator.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -41,9 +42,16 @@ async function main() {
 
     const player = new Player(camera);
     physics.addRigidBody(player);
+    scene.add(player)
+
+    await player.loadModel(scene)
     
     const world = new World(physics, player);
     scene.add(world);
+    
+    scene.add(player.skin);
+
+
 
 
 
@@ -74,6 +82,14 @@ async function main() {
             lastFpsTime = newTime;
             //console.log(`FPS: ${fps}`);
         }
+
+        /*
+        if (model && animator) {
+            model.position.copy(player.position).add(new THREE.Vector3(0, -1.7, 0));
+            animator.play('idle');
+            animator.update(dt)
+        }
+        */
 
         renderer.render(scene, camera);
         requestAnimationFrame(render);
