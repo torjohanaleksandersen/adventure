@@ -27,8 +27,8 @@ export class Models {
                         obj.castShadow = true;
                         obj.receiveShadow = true;
                         
-                        /*
-                        if ((obj.material instanceof THREE.MeshBasicMaterial || obj.material instanceof THREE.MeshPhongMaterial)) {
+                        
+                        if ((obj.material instanceof THREE.MeshStandardMaterial)) {
                             obj.material = new THREE.MeshLambertMaterial({
                                 color: obj.material.color,
                                 map: obj.material.map,
@@ -39,9 +39,12 @@ export class Models {
                                 emissiveMap: obj.material.emissiveMap,
                                 emissiveIntensity: obj.material.emissiveIntensity,
                                 envMap: obj.material.envMap,
+                                name: obj.material.name
                             });
                         }
-                            */
+                            
+                        
+                        obj.userData.updatedSeasonLook = false;
                         
                         subModels.push(obj);
                     }

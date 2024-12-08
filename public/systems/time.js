@@ -1,19 +1,33 @@
 
 export class Time {
     constructor() {
-        this.time = 0;
-        this.tickSpeed = 0.5;
+        this.time = 180;
+        this.tickSpeed = 1;
         this.deltaTime = 0;
+        this.startDay = 0;
         this.seasonLengthInDays = 10;
+
+        this.listeners = {
+            'day-change': []
+        }
+
+        this.previousDay = this.getDay();
     }
 
-    get DayCount() {
-        return Math.floor((this.time + 90) / 360);
+    addEventListener(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event].push(callback);
+        }
     }
 
-    get TimeOfDay() {
-        const time = (this.time % 360) / 360 * 24;
-        return (time + 12) % 24;
+    dispatchEvent(event) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(callback => callback());
+        }
+    }
+
+    getDay() {
+        return this.startDay + Math.floor((this.time + 180) / 360);
     }
 
     get DiurnalCycleValue() {
@@ -34,13 +48,27 @@ export class Time {
         return this.time;
     }
 
-    get Season() {
+    getHour() {
+        const time = (this.time % 360) / 360 * 24;
+        return (time + 12) % 24;
+    }
+
+    getSeasonData() {
         const seasons = ['summer', 'autumn', 'winter', 'spring'];
-        return seasons[Math.floor(this.DayCount / this.seasonLengthInDays) % seasons.length];
+        const season = seasons[Math.floor(this.getDay() / this.seasonLengthInDays) % seasons.length];
+        const progress = (this.getDay() % this.seasonLengthInDays) / this.seasonLengthInDays;
+        return {season, progress};
     }
 
     update(dt) {
         this.time += dt * this.tickSpeed;
         this.deltaTime = dt;
+
+
+        const currentDay = this.getDay();
+        if (currentDay != this.previousDay) {
+            this.previousDay = currentDay;
+            this.dispatchEvent('day-change');
+        }
     }
 }

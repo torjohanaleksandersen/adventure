@@ -33,8 +33,7 @@ export class Graphics {
         this.scene.add(this.moon);
 
         //fog
-        this.scene.fog = new THREE.Fog(0xffffff, DRAW_RANGE * CHUNK_SIZE * 0.5, DRAW_RANGE * CHUNK_SIZE * 0.85); //100, 180
-
+        this.scene.fog = new THREE.Fog(0xffffff, DRAW_RANGE * CHUNK_SIZE * 0.3, DRAW_RANGE * CHUNK_SIZE * 0.6); //100, 180
         //sky
         this.sky = new Sky();
         this.sky.scale.setScalar( 450000 );

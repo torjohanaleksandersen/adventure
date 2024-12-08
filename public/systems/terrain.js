@@ -17,28 +17,25 @@ class Terrain {
     }
 
     getBiomeValue(x, z) {
-        // Broad biome regions (large scale)
-        const base = this.f1(x * 0.001, z * 0.001) * 0.7; 
-    
-        // Add medium-scale modulation for variation within biomes
-        const modulation = this.f3(x * 0.008, z * 0.008) * 0.2; 
-    
-        // Fine-grain detail for localized variation
-        const detail = this.f4(x * 0.03, z * 0.03) * 0.1;
-    
-        // Additional layer to break symmetry and add unique features
-        const feature = this.f5(x * 0.01, z * 0.01) * 0.15;
-    
-        // Blend layers with weights
-        const biomeValue = base + modulation + detail + feature;
-    
-        // Normalize the final value to range [-1, 1]
-        return Math.max(-1, Math.min(1, biomeValue));
-    }
+        const broad = this.f1(x * 0.002, z * 0.002) + 0.5;
 
-    getBiome() {
+        const base = this.f2(x * 0.02, z * 0.02) * 0.2
+    
 
+        let biomeValue = broad + base;
+        return Math.max(0, Math.min(1, biomeValue));
     }
+    
+    getBiome(x, z) {
+        const value = this.getBiomeValue(x, z);
+    
+        // Map ranges to distinct biomes
+        if (value < 0.2) return 'sand';
+        if (value < 0.8) return 'forest';
+        if (value < 1) return 'spruce';
+    }
+    
+    
 
     getY(x, z) {
         x *= FREQUENZY;
@@ -89,7 +86,7 @@ class Terrain {
 
     getTerrainColor(h_1, h_2) {
         const grassLevel = 0.5 + (Math.random() * 0.02 - 0.01);
-        const mountainLevel = 5 + (Math.random() * 0.5 - 1);
+        const mountainLevel = 6 + (Math.random() * 0.5 - 1);
         const snowlevel = 20 + (Math.random() * 3 - 2);
 
         let color1 = new THREE.Color();
@@ -102,7 +99,7 @@ class Terrain {
         } else if (h_1 > mountainLevel - 1) {
             color1.setHex(terrain.getColor('mix_grass-stone'))
         } else if (h_1 > grassLevel) {
-            color1.setHex(terrain.getColor('snow')); //grass
+            color1.setHex(terrain.getColor('grass')); //grass
         } else if (h_1 > grassLevel - 0.2) {
             color1.setHex(terrain.getColor('mix_sand-grass'))
         } else {
@@ -116,7 +113,7 @@ class Terrain {
         } else if (h_2 > mountainLevel - 1) {
             color2.setHex(terrain.getColor('mix_grass-stone'))
         } else if (h_2 > grassLevel) {
-            color2.setHex(terrain.getColor('snow')); //grass
+            color2.setHex(terrain.getColor('grass')); //grass
         } else if (h_2 > grassLevel - 0.2) {
             color2.setHex(terrain.getColor('mix_sand-grass'))
         } else {
