@@ -9,11 +9,10 @@ import { Time } from './systems/time.js';
 import { Models } from './systems/models.js';
 import { GLTFLoader } from './imports/three/examples/jsm/Addons.js';
 import { Grid } from './systems/grid.js';
-import { FBXLoader } from './imports/FBXLoader/FBXLoader.js';
-import { Animator } from './systems/animator.js';
 import { Weather } from './systems/weather.js';
-import { Water } from './imports/three/examples/jsm/objects/Water2.js';
 import { ParticleEffects } from './systems/particle-effects.js';
+import { Campfire } from './world-objects/campfire.js';
+import { Builder } from './systems/builder.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -59,10 +58,55 @@ async function main() {
     scene.add(player.skin);
 
 
+    const loader = new GLTFLoader();
+
+    loader.load("models/nature/sky/Cloud.glb", gltf => {
+        const model = gltf.scene;
+
+        model.scale.setScalar(6)
+        model.position.set(0, 50, 50)
+
+        model.traverse(obj => {
+            if (obj.isMesh) {
+                obj.recieveShadow = false;
+                obj.castShadow = false;
+                const updatedMaterial = obj.material.clone();
+
+                // Update material properties
+                updatedMaterial.roughness = 0.8;
+                updatedMaterial.metalness = 0.0;
+                updatedMaterial.transparent = true;
+                updatedMaterial.opacity = 0.9;
+
+                updatedMaterial.emissive = new THREE.Color(0xffffff); // Lighten the bottom
+                updatedMaterial.emissiveIntensity = 0.2;
+
+                // Assign the updated material back to the mesh
+                obj.material = updatedMaterial;
+            }
+        })
+
+        scene.add(model);
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let warm = 0;
     inputs.registerHandler('keydown', (e) => {
         switch(e.key) {
             case 'g':
-                console.log(weather.getTemperature());
+                console.log(weather.getTemperature() + warm);
                 break;
             case 'h':
                 world.chunks.forEach(chunk => {
@@ -70,13 +114,21 @@ async function main() {
                 })
                 break;
             case 'j': 
-                weather.set('snow')
+                particleEffects.createWeather('rain');
                 break;
             case 'k':
-                weather.set('clear');
+                particleEffects.removeWeather('rain');
                 break;
         }
     })
+
+
+    const campfire = new Campfire();
+    campfire.position.set(0, 1, 0);
+    campfire.visible = false;
+    scene.add(campfire);
+
+
 
 
 
@@ -94,8 +146,8 @@ async function main() {
         time.update(dt);
         weather.update(player.position, particleEffects);
         if (world.initialized) physics.update(dt);
-        graphics.update(dt, player);
-        world.update(dt);
+        graphics.update(time.getDelta(), player);
+        world.update(time.getDelta());
         particleEffects.update();
 
         // Update FPS every second
@@ -107,6 +159,20 @@ async function main() {
             lastFpsTime = newTime;
         }
         */
+
+        const distFromCampfire = new THREE.Vector2(
+            campfire.position.x - player.position.x,
+            campfire.position.z - player.position.z
+        ).length();
+
+        warm = 0;
+        if (distFromCampfire < 5) {
+            warm += (5 - distFromCampfire) * 30;
+        }
+
+
+
+        
 
 
         renderer.render(scene, camera);

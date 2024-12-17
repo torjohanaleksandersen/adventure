@@ -95,12 +95,14 @@ export class Graphics {
     
         // Adjust sun and moon intensity based on time of day
         if (time.isNight()) {
-            this.sun.intensity = 0;
-            this.moon.intensity = 0.1 * Math.abs(diurnal);
+            this.sun.intensity = 0.05 - 0.05 * Math.abs(diurnal);
+            this.moon.intensity = 0.05 + 0.05 * Math.abs(diurnal);
+            this.ambient.intensity = 0.03;
+
         } else {
-            this.sun.intensity = 2 * Math.abs(diurnal);
-            this.moon.intensity = 0;
+            this.sun.intensity = 0.05 + 1.95 * Math.abs(diurnal);
+            this.moon.intensity = 0.05 - 0.05 * Math.abs(diurnal);
+            this.ambient.intensity = 0.03 + Math.abs(diurnal) * 0.08;
         }
-        
     }
 }

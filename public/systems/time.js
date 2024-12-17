@@ -1,7 +1,7 @@
 
 export class Time {
     constructor() {
-        this.time = 180;
+        this.time = 80;
         this.tickSpeed = 1;
         this.deltaTime = 0;
         this.startDay = 0;
@@ -41,7 +41,7 @@ export class Time {
     }
 
     getDelta() {
-        return this.deltaTime;
+        return this.deltaTime * this.tickSpeed;
     }
 
     getTime() {
@@ -56,7 +56,15 @@ export class Time {
     getSeasonData() {
         const seasons = ['summer', 'autumn', 'winter', 'spring'];
         const season = seasons[Math.floor(this.getDay() / this.seasonLengthInDays) % seasons.length];
-        const progress = (this.getDay() % this.seasonLengthInDays) / this.seasonLengthInDays;
+        let p = (this.getDay() % this.seasonLengthInDays) / this.seasonLengthInDays;
+        let progress = 0
+        if (p < 0.5) {
+            progress = 0;
+        } else if (p <= 0.75) {
+            progress = 2 * (p - 0.5);
+        } else {
+            progress = p;
+        }
         return {season, progress};
     }
 

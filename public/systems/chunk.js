@@ -214,17 +214,6 @@ export class Chunk extends THREE.Object3D {
                 const x = (i * triangleSize) - (this.size / 2);
                 const z = (j * triangleSize) - (this.size / 2);
 
-                /*
-                let color;
-                const biome = terrain.getBiome(this.x * this.size + x,this.z * this.size - z);
-                if (biome == 'sand') color = 0xFFFF00;
-                else if (biome == 'forest') color = 0x00ff00;
-                else color = 0x06402B;
-
-                let color1 = new THREE.Color(color);
-                let color2 = new THREE.Color(color);
-                */
-
                 // Triangle 1 of each grid square
                 vertices.push(x, z, h1);
                 vertices.push(x + triangleSize, z, h2);
@@ -264,30 +253,74 @@ export class Chunk extends THREE.Object3D {
     }
 
     updateSeasonalColors() {
-        if (!this.NatureAssets) return;
-
-        const { season, progress } = time.getSeasonData();
-
+        const {season, progress} = time.getSeasonData()
         const seasonOrder = ['spring', 'summer', 'autumn', 'winter'];
         const currentIndex = seasonOrder.indexOf(season);
         const nextSeason = seasonOrder[(currentIndex + 1) % seasonOrder.length];
 
-        this.NatureAssets.children.forEach(LOD => {
-            const color = new THREE.Color(COLORS.canopyColors[season][Math.floor(terrain.RNG(this.x * this.size + LOD.position.x, this.z * this.size + LOD.position.z) * COLORS.canopyColors[season].length)]);
-            const nextColor = new THREE.Color(COLORS.canopyColors[nextSeason][Math.floor(terrain.RNG(this.x * this.size + LOD.position.x, this.z * this.size + LOD.position.z) * COLORS.canopyColors[nextSeason].length)]);
-            
-            const result = color.clone().lerp(nextColor, Math.abs(progress ));
-            
-            LOD.levels.forEach(level => {
-                level.object.traverse(obj => {
-                    if (obj.material && (obj.material.name.includes("Autum") || obj.material.name.includes("green"))) { // Trees or bush
-                        obj.material = obj.material.clone();
-                        obj.material.color = result;
-                        obj.material.needsUpdate = true;
-                    }
+        const triangleSize = this.size / this.gridSize;
+
+        if (this.Collider) {
+            const geometry = this.Collider.geometry
+            const colors = [];
+
+    
+            for (let i = 0; i < this.gridSize; i++) {
+                for (let j = 0; j < this.gridSize; j++) {
+                    const h1 = this.heightMap[i][j];
+                    const h2 = this.heightMap[i + 1][j];
+                    const h3 = this.heightMap[i][j + 1];
+                    const h4 = this.heightMap[i + 1][j + 1];
+    
+                    const h_1 = (h1 + h2 + h3) / 3;
+                    const h_2 = (h2 + h3 + h4) / 3;
+
+                    const x = (i * triangleSize) - (this.size / 2);
+                    const z = (j * triangleSize) - (this.size / 2);
+    
+                    const RNG = terrain.RNG(
+                        (this.x * this.size + x) + (z % 7) * 13.37, 
+                        (this.z * this.size + z) + (x % 5) * 19.91
+                    );
+                    
+                    const [color1, color2] = terrain.getTerrainColor(h_1, h_2, season, RNG);
+                    const [nextColor1, nextColor2] = terrain.getTerrainColor(h_1, h_2, nextSeason, RNG);
+
+                    const result1 = color1.clone().lerp(nextColor1, progress)
+                    const result2 = color2.clone().lerp(nextColor2, progress)
+
+    
+                    colors.push(result1.r, result1.g, result1.b);
+                    colors.push(result1.r, result1.g, result1.b);
+                    colors.push(result1.r, result1.g, result1.b);
+    
+                    colors.push(result2.r, result2.g, result2.b);
+                    colors.push(result2.r, result2.g, result2.b);
+                    colors.push(result2.r, result2.g, result2.b);
+                }
+            }
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        }
+
+        if (this.NatureAssets) {
+    
+            this.NatureAssets.children.forEach(LOD => {
+                const color = new THREE.Color(COLORS.canopyColors[season][Math.floor(terrain.RNG(this.x * this.size + LOD.position.x, this.z * this.size + LOD.position.z) * COLORS.canopyColors[season].length)]);
+                const nextColor = new THREE.Color(COLORS.canopyColors[nextSeason][Math.floor(terrain.RNG(this.x * this.size + LOD.position.x, this.z * this.size + LOD.position.z) * COLORS.canopyColors[nextSeason].length)]);
+                
+                const result = color.clone().lerp(nextColor, progress);
+                
+                LOD.levels.forEach(level => {
+                    level.object.traverse(obj => {
+                        if (obj.material && (obj.material.name.includes("Autum") || obj.material.name.includes("green"))) { // Trees or bush
+                            obj.material = obj.material.clone();
+                            obj.material.color = result;
+                            obj.material.needsUpdate = true;
+                        }
+                    })
                 })
             })
-        })
+        }
     }
 
     update() {

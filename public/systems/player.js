@@ -26,7 +26,9 @@ export class Player extends RigidBody {
         }
 
 
-        this.speed = 10
+        this.speed = 6;
+        this.acceleration = this.speed * 0.7;
+        this.requestedVelocity = new THREE.Vector3(0, 0, 0);
 
 
 
@@ -63,6 +65,11 @@ export class Player extends RigidBody {
                     break;
             }
         })
+    }
+
+    getCollidingGround() {
+        const raycaster = new THREE.Raycaster(this.position, new THREE.Vector3(0, -1, 0));
+        raycaster.far = 2;
     }
 
     loadModel() {
@@ -123,8 +130,8 @@ export class Player extends RigidBody {
             moveVector.add(side.clone().multiplyScalar(-this.speed));
         }
     
-        this.velocity.x = moveVector.x;
-        this.velocity.z = moveVector.z;
+        this.requestedVelocity.x = moveVector.x;
+        this.requestedVelocity.z = moveVector.z;
     }
     
     updateSkin() {
@@ -152,6 +159,14 @@ export class Player extends RigidBody {
             this.animator.update(dt);
         }
 
-        this.camera.position.copy(this.position).add(new THREE.Vector3(0, 0, 0))
+        if (this.velocity.x != this.requestedVelocity.x || this.velocity.z != this.requestedVelocity.z) {
+            const dx = this.requestedVelocity.x - this.velocity.x;
+            const dz = this.requestedVelocity.z - this.velocity.z;
+
+            this.velocity.x += dx * this.acceleration * dt;
+            this.velocity.z += dz * this.acceleration * dt;
+        }
+
+        this.camera.position.copy(this.position).add(new THREE.Vector3(0, -0.3, 0))
     }
 }

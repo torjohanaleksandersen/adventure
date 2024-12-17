@@ -34,8 +34,6 @@ class Terrain {
         if (value < 0.8) return 'forest';
         if (value < 1) return 'spruce';
     }
-    
-    
 
     getY(x, z) {
         x *= FREQUENZY;
@@ -53,8 +51,6 @@ class Terrain {
         //base + bump1 + bump2 + mountains
         return (base + bump1 + bump2 + mountains) * AMPLITUDE;
     }
-    
-    
 
     RNG(x, z) {
         const seed = x * 0x1f1f1f1f + z * 0x1f1f1f1f;
@@ -64,60 +60,46 @@ class Terrain {
 
         return (result & 0xFFFFFFF) / 0xFFFFFFF;
     }
-    
-    
 
-    getColor(typeTerrain = '') {
-        if (typeTerrain === 'grass') {
-            return COLORS.grass[Math.floor(Math.random() * COLORS.grass.length)]
-        } else if (typeTerrain === 'sand') {
-            return COLORS.sand[Math.floor(Math.random() * COLORS.sand.length)]
-        } else if (typeTerrain == 'stone') {
-            return COLORS.stone[Math.floor(Math.random() * COLORS.stone.length)]
-        } else if (typeTerrain == 'mix_sand-grass') {
-            return COLORS.sandGrassTransition[Math.floor(Math.random() * COLORS.sandGrassTransition.length)]
-        } else if (typeTerrain == 'snow') {
-            return COLORS.snow[Math.floor(Math.random() * COLORS.snow.length)]
-        } else if (typeTerrain == 'mix_grass-stone') {
-            return COLORS.grassStoneTransition[Math.floor(Math.random() * COLORS.grassStoneTransition.length)]
-        }
-        return null;
+    getColor(typeTerrain = '', rng) {
+        if (typeof typeTerrain != 'string') return typeTerrain[Math.floor(rng * typeTerrain.length)]
+        return COLORS[typeTerrain][Math.floor(rng * COLORS[typeTerrain].length)];
     }
 
-    getTerrainColor(h_1, h_2) {
-        const grassLevel = 0.5 + (Math.random() * 0.02 - 0.01);
-        const mountainLevel = 6 + (Math.random() * 0.5 - 1);
-        const snowlevel = 20 + (Math.random() * 3 - 2);
+    getTerrainColor(h_1, h_2, season = 'summer', rng) {
+        const grassLevel = 0.5 + (rng * 0.02 - 0.01);
+        const mountainLevel = 6 + (rng * 2 - 3);
+        const snowlevel = 20 + (rng * 3 - 2);
 
         let color1 = new THREE.Color();
         let color2 = new THREE.Color();
 
         if (h_1 > snowlevel) {
-            color1.setHex(terrain.getColor('snow'))
+            color1.setHex(terrain.getColor('snow', rng))
         } else if (h_1 > mountainLevel) {
-            color1.setHex(terrain.getColor('stone'))
+            color1.setHex(terrain.getColor('stone', rng))
         } else if (h_1 > mountainLevel - 1) {
-            color1.setHex(terrain.getColor('mix_grass-stone'))
+            color1.setHex(terrain.getColor('grassStone', rng))
         } else if (h_1 > grassLevel) {
-            color1.setHex(terrain.getColor('grass')); //grass
+            color1.setHex(terrain.getColor(COLORS.grass[season], rng)); //grass
         } else if (h_1 > grassLevel - 0.2) {
-            color1.setHex(terrain.getColor('mix_sand-grass'))
+            color1.setHex(terrain.getColor('sandGrass', rng))
         } else {
-            color1.setHex(terrain.getColor('sand'));
+            color1.setHex(terrain.getColor('sand', rng));
         }
 
         if (h_2 > snowlevel) {
-            color2.setHex(terrain.getColor('snow'))
+            color2.setHex(terrain.getColor('snow', 1 - rng))
         } else if (h_2 > mountainLevel) {
-            color2.setHex(terrain.getColor('stone'))
+            color2.setHex(terrain.getColor('stone', 1 - rng))
         } else if (h_2 > mountainLevel - 1) {
-            color2.setHex(terrain.getColor('mix_grass-stone'))
+            color2.setHex(terrain.getColor('grassStone', 1 - rng))
         } else if (h_2 > grassLevel) {
-            color2.setHex(terrain.getColor('grass')); //grass
+            color2.setHex(terrain.getColor(COLORS.grass[season], 1 - rng)); //grass
         } else if (h_2 > grassLevel - 0.2) {
-            color2.setHex(terrain.getColor('mix_sand-grass'))
+            color2.setHex(terrain.getColor('sandGrass', 1 - rng))
         } else {
-            color2.setHex(terrain.getColor('sand'));
+            color2.setHex(terrain.getColor('sand', 1 - rng));
         }
 
         return [ color1, color2 ];

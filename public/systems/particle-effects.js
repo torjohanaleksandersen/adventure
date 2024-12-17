@@ -8,18 +8,51 @@ export class ParticleEffects extends THREE.Object3D {
         super()
 
         this.particles = {};
-        this.particles.snow = []
+        this.particles.snow = [];
+        this.particles.rain = [];
     }
 
-    createSnow({
-        count = 500,
-        area = new THREE.Vector2(50, 50),
-        scaleScalar = 0.3,
-        opacity = 0.8,
-        position = new THREE.Vector2(0, 0)
-    }) 
+    createWeather(name) {
+        let options = {};
+        if (name == 'snow') {
+            options = {
+                count: 500,
+                area: new THREE.Vector2(50, 50),
+                scaleScalar: 0.3,
+                opacity: 0.8,
+                position: new THREE.Vector2(0, 0),
+                name: 'snow',
+                color: 0x000000,
+                gravity: 0.1
+            };
+        } else if (name == 'rain') {
+            options = {
+                count: 10000,
+                area: new THREE.Vector2(50, 50),
+                scaleScalar: 0.1,
+                opacity: 0.8,
+                position: new THREE.Vector2(0, 0),
+                name: 'rain',
+                color: 0x395877,
+                gravity: 0.2
+            }
+        };
+        this.createWeatherParticles(options)
+    }
+
+    createWeatherParticles(options = {}) 
     {
-        const snowflakeGeometry = new THREE.BufferGeometry();
+        const {
+            count = 0,
+            area = new THREE.Vector2(50, 50),
+            scaleScalar = 0,
+            opacity = 0,
+            position = new THREE.Vector2(0, 0),
+            name = '',
+            color = 0x000000,
+            gravity = 0,
+        } = options;
+        const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(count * 3);
 
         for (let i = 0; i < count; i++) {
@@ -28,52 +61,58 @@ export class ParticleEffects extends THREE.Object3D {
             positions[i * 3 + 2] = (Math.random() * area.y) - (area.y / 2); // z
         }
 
-        const snowflakeMaterial = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: ( scaleScalar / 2) + ( Math.random() * scaleScalar),
+        const material = new THREE.PointsMaterial({
+            color: color,
+            size: scaleScalar,
             transparent: true,
-            opacity: ( opacity / 2) + ( Math.random() * opacity),
+            opacity: opacity,
             depthTest: true
         });
 
-        snowflakeGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.computeBoundingSphere();
 
-        const snow = new THREE.Points(snowflakeGeometry, snowflakeMaterial);
-        snow.name = 'snow';
-        snow.position.set(position.x, 0, position.y);
-        this.particles.snow.push(snow);
-        this.add(snow)
+        const weather = new THREE.Points(geometry, material);
+        weather.name = name;
+        weather.userData.gravity = gravity;
+
+        weather.position.set(position.x, 0, position.y);
+        this.particles[name].push(weather);
+        this.add(weather)
     }
 
-    removeSnow(pos = null) {
+    removeWeather(name, pos = null) {
         if (pos == null) {
-            this.particles.snow.forEach(snow => {
-                if (snow.name == 'snow') {
-                    this.remove(snow);
+            this.particles[name].forEach(mesh => {
+                if (mesh.name == name) {
+                    this.remove(mesh);
                 }
             })
-            this.particles.snow = [];
+            this.particles[name] = [];
         }
     }
 
     update() {
-        if (this.particles.snow.length > 0) {
-            this.particles.snow.forEach(snow => {
-                const position = snow.geometry.attributes.position.array;
-                const wind = weather.windDirection;
-
-                for (let i = 0; i < position.length; i ++) {
-                    position[i * 3] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.x; //x
-                    position[i * 3 + 1] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.y - 0.03; //y
-                    position[i * 3 + 2] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.z; //z
-
-                    if (position[i * 3 + 1] < 0) {
-                        position[i * 3 + 1] = Math.random() * 100;
+        const weatherTypes = ['snow', 'rain'];
+        for (const name of weatherTypes) {
+            if (this.particles[name].length > 0) {
+                this.particles[name].forEach(mesh => {
+                    const position = mesh.geometry.attributes.position.array;
+                    const wind = weather.windDirection;
+    
+                    for (let i = 0; i < position.length; i ++) {
+                        position[i * 3] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.x; //x
+                        position[i * 3 + 1] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.y - mesh.userData.gravity; //y
+                        position[i * 3 + 2] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.z; //z
+    
+                        if (position[i * 3 + 1] < 0) {
+                            position[i * 3 + 1] = Math.random() * 100;
+                        }
                     }
-                }
-
-                snow.geometry.attributes.position.needsUpdate = true;
-            })
+    
+                    mesh.geometry.attributes.position.needsUpdate = true;
+                })
+            }
         }
     }
 }

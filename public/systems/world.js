@@ -1,12 +1,11 @@
 import * as THREE from 'three'
 import { Chunk } from './chunk.js'
 import { grid, time } from '../main.js';
-import { Reflector } from '../imports/three/examples/jsm/Addons.js';
-import { Water } from '../imports/three/examples/jsm/Addons.js';
+import { Water } from './water.js';
 
 export const CHUNK_SIZE = 50;
-const CHUNK_GRID_SIZE = 50;
-export const DRAW_RANGE = 5;
+export const CHUNK_GRID_SIZE = 50;
+export const DRAW_RANGE = 4;
 const PHYSICS_DISTANCE = 2;
 const NATURE_DRAW_RANGE = 3;
 const SIMULATION_DISTANCE = 3;
@@ -31,6 +30,12 @@ export class World extends THREE.Group {
         }
 
         this.addWater()
+
+        this.icemesh = new THREE.Object3D;
+        this.icemesh.visible = false;
+
+
+        //this.addIce()
         this.updateChunksPlayerDistance()
     }
 
@@ -93,67 +98,52 @@ export class World extends THREE.Group {
     }
 
     addWater() {
-        
-        const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, WORLD_GRID_SIZE, WORLD_GRID_SIZE);
-        
-        const material = new THREE.MeshLambertMaterial({
-            color: 0x003482,
-            metalness: 0.3, // Makes the surface reflective
-            roughness: 0.7, // Controls the sharpness of the reflections
-            flatShading: true,
-            transparent: true,
-            opacity: 0.7,
-        });
-        
-        
-        /*
-        const normalMap = new THREE.TextureLoader().load('./images/water-normal.png');
-        normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
-
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x003482,
-            side: THREE.DoubleSide,
-            flatShading: true,
-            transparent: true,
-            opacity: 1,
-            normalMap: normalMap,
-        });
-        */
-
-        /*
-        const reflector = new Reflector(geometry, {
-            textureWidth: window.innerWidth * 0.5,
-            textureHeight: window.innerHeight * 0.5,
-            transparent: true,
-            opacity: 0.5,
-            color: 0x777777,
-        });
-        reflector.rotation.x = -Math.PI / 2;
-        reflector.position.y = 0.2; // Slightly above the base water level
-        this.add(reflector);
-        */
-
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.name = 'water'
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.rotation.x = - Math.PI / 2;
-        this.waterMesh = mesh;
-        this.add(mesh);
+        this.river = new Water({size: WORLD_SIZE, gridsize: WORLD_GRID_SIZE, waveSize: 0.08});
+        this.add(this.river)
     }
 
-    updateWater(dt) {
-        if (!this.waterMesh) return
-        const position = this.waterMesh.geometry.attributes.position;
+    addIce() {
+        this.river.visible = false;
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        const colors = [];
 
-        for (let i = 0; i < position.count; i += 1) {
-            const x = position.array[i * 3];
-            const z = position.array[i * 3 + 1];
+        const triangleSize = WORLD_SIZE;
 
-            const y = Math.sin(x + time.getTime()) + Math.cos(z + time.getTime());
-            position.array[i * 3 + 2] = y * 0.08;
-        }
-        position.needsUpdate = true;
+        const x = - triangleSize / 2;
+        const z = - triangleSize / 2;
+
+        // Triangle 1 of each grid square
+        vertices.push(x, z, 0);
+        vertices.push(x + triangleSize, z, 0);
+        vertices.push(x, z + triangleSize, 0);
+
+        const c = new THREE.Color(0xd6fffa)
+
+        colors.push(c.r, c.g, c.b);
+        colors.push(c.r, c.g, c.b);
+        colors.push(c.r, c.g, c.b);
+
+        // Triangle 2 of each grid square
+        vertices.push(x + triangleSize, z, 0);
+        vertices.push(x + triangleSize, z + triangleSize, 0);
+        vertices.push(x, z + triangleSize, 0);
+
+        colors.push(c.r, c.g, c.b);
+        colors.push(c.r, c.g, c.b);
+        colors.push(c.r, c.g, c.b);
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.x = - Math.PI / 2;
+
+        mesh.name = 'ice';
+        this.icemesh = mesh;
+
+        this.add(mesh)
     }
 
     getChunksToLoad() {
@@ -261,7 +251,7 @@ export class World extends THREE.Group {
         const playerChunkX = Math.ceil((this.player.position.x - CHUNK_SIZE / 2) / CHUNK_SIZE);
         const playerChunkZ = Math.ceil((this.player.position.z - CHUNK_SIZE / 2) / CHUNK_SIZE);
 
-        this.waterMesh.position.set(playerChunkX, 0, playerChunkZ).multiplyScalar(CHUNK_SIZE)
+        this.river.position.set(playerChunkX, 0, playerChunkZ).multiplyScalar(CHUNK_SIZE)
 
         this.updateChunksPlayerDistance()
 
@@ -291,7 +281,7 @@ export class World extends THREE.Group {
 
         this.renderNewChunks()
         this.updateChunks()
-        this.updateWater(dt)
+        this.river.update()
 
         let allChunksInitialized = true
         this.pendingChunksToRigidBodies.forEach(chunk => {
@@ -304,6 +294,7 @@ export class World extends THREE.Group {
         })
 
         if (allChunksInitialized && this.pendingChunksToRigidBodies.size == 0 && !this.initialized) {
+            if (this.icemesh.visible) this.physics.addMeshCollider(this.icemesh);
             this.physics.finalizeEnvironmentColliders();
             this.pendingChunksToRigidBodies.clear();
             this.initialized = true;
