@@ -22,8 +22,12 @@ export class Player extends RigidBody {
         }
 
         this.state = {
-            movement: 'idle'
+            movement: 'idle',
+            building: false,
         }
+
+        this.inventory = {};
+        this.inHand = 'campfire';
 
 
         this.speed = 6;
@@ -51,6 +55,9 @@ export class Player extends RigidBody {
                         this.onGround = false;
                     }
                     break;
+                case 'b':
+                    this.state.building = true;
+                    break;
             }
         })
         inputs.registerHandler('keyup', (e) => {
@@ -62,6 +69,9 @@ export class Player extends RigidBody {
                 case 's':
                 case 'd':
                     this.moveInputs[key] = false;
+                    break;
+                case 'b':
+                    this.state.building = false;
                     break;
             }
         })

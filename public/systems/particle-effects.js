@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { time, weather } from '../main.js';
+import { time } from '../main.js';
 
 
 
@@ -8,27 +8,27 @@ export class ParticleEffects extends THREE.Object3D {
         super()
 
         this.particles = {};
-        this.particles.snow = [];
-        this.particles.rain = [];
+        this.particles.snow = null;
+        this.particles.rain = null;
     }
 
     createWeather(name) {
         let options = {};
         if (name == 'snow') {
             options = {
-                count: 500,
-                area: new THREE.Vector2(50, 50),
+                count: 5000,
+                area: new THREE.Vector2(100, 100),
                 scaleScalar: 0.3,
                 opacity: 0.8,
                 position: new THREE.Vector2(0, 0),
                 name: 'snow',
-                color: 0x000000,
+                color: 0xffffff,
                 gravity: 0.1
             };
         } else if (name == 'rain') {
             options = {
                 count: 10000,
-                area: new THREE.Vector2(50, 50),
+                area: new THREE.Vector2(100, 100),
                 scaleScalar: 0.1,
                 opacity: 0.8,
                 position: new THREE.Vector2(0, 0),
@@ -77,41 +77,50 @@ export class ParticleEffects extends THREE.Object3D {
         weather.userData.gravity = gravity;
 
         weather.position.set(position.x, 0, position.y);
-        this.particles[name].push(weather);
+        this.particles[name] = weather;
         this.add(weather)
     }
 
     removeWeather(name, pos = null) {
+        if (!name) {
+            this.removeWeather('rain');
+            this.removeWeather('snow');
+            return
+        }
         if (pos == null) {
-            this.particles[name].forEach(mesh => {
-                if (mesh.name == name) {
-                    this.remove(mesh);
-                }
-            })
-            this.particles[name] = [];
+            this.remove(this.particles[name]);
+            this.particles[name] = null;
+        }
+    }
+
+    playerChunkChange(x, z) {
+        for (const name in this.particles) {
+            const mesh = this.particles[name];
+            if (!mesh) continue;
+
+            mesh.position.set(x, 0, z);
         }
     }
 
     update() {
         const weatherTypes = ['snow', 'rain'];
         for (const name of weatherTypes) {
-            if (this.particles[name].length > 0) {
-                this.particles[name].forEach(mesh => {
-                    const position = mesh.geometry.attributes.position.array;
-                    const wind = weather.windDirection;
-    
-                    for (let i = 0; i < position.length; i ++) {
-                        position[i * 3] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.x; //x
-                        position[i * 3 + 1] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.y - mesh.userData.gravity; //y
-                        position[i * 3 + 2] += time.getDelta() * time.tickSpeed * Math.random() * weather.windDirection.z; //z
-    
-                        if (position[i * 3 + 1] < 0) {
-                            position[i * 3 + 1] = Math.random() * 100;
-                        }
+            if (this.particles[name] != null) {
+                const mesh = this.particles[name];
+                const position = mesh.geometry.attributes.position.array;
+                //const wind = weather.windDirection;
+
+                for (let i = 0; i < position.length; i ++) {
+                    //position[i * 3] += time.getDelta() * time.tickSpeed * Math.random() //x
+                    position[i * 3 + 1] += time.getDelta() * time.tickSpeed * Math.random() - mesh.userData.gravity; //y
+                    //position[i * 3 + 2] += time.getDelta() * time.tickSpeed * Math.random() //z
+
+                    if (position[i * 3 + 1] < 0) {
+                        position[i * 3 + 1] = Math.random() * 100;
                     }
-    
-                    mesh.geometry.attributes.position.needsUpdate = true;
-                })
+                }
+
+                mesh.geometry.attributes.position.needsUpdate = true;
             }
         }
     }

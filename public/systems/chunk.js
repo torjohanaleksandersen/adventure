@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import * as COLORS from '../data/colors.js'
 import { terrain } from './terrain.js';
-import { grid, models, time } from '../main.js';
-import { modelData } from '../data/models.js'
+import { grid, models, time, weather } from '../main.js';
+import { LODModelsData } from '../data/models.js'
 
 
 
@@ -15,6 +15,7 @@ export class Chunk extends THREE.Object3D {
         this.gridSize = gridSize;
         this.initialized = false;
         this.name = 'chunk';
+        this.snowLevel = -1;
 
         this.currentUpdate = {
             season: time.getSeasonData().season,
@@ -42,6 +43,10 @@ export class Chunk extends THREE.Object3D {
         time.addEventListener('day-change', () => {
             this.updateSeasonalColors();
         })
+
+        setTimeout(() => {
+            this.addSnow();
+        }, 1000)
     }
     
     
@@ -99,20 +104,29 @@ export class Chunk extends THREE.Object3D {
 
             const nature = {
                 'trees': [
+                    /*
                     [0.00, 0.0075],
                     [0.025, 0.0325],
                     [0.05, 0.0575],
                     [0.075, 0.0825]
+                    */
+                    [0, 0.032]
                 ],
                 'rocks': [
+                    /*
                     [0.1, 0.105],
                     [0.2, 0.205],
                     [0.3, 0.305],
+                    */
+                    [0.2, 0.22]
                 ],
                 'bushes': [
-                    [0.4, 0.405],
-                    [0.5, 0.505],
-                    [0.6, 0.605],
+                    /*
+                    [0.4, 0.41],
+                    [0.5, 0.51],
+                    [0.6, 0.61],
+                    */
+                    [0.3, 0.35]
                 ]
             };
     
@@ -121,13 +135,18 @@ export class Chunk extends THREE.Object3D {
                 (this.z * this.size + z) + (x % 5) * 19.91
             );
 
+            let typeFlag = 'temperate';
+            if (weather.snowOnNatureAssets) {
+                typeFlag = 'snow';
+            }
+
 
             let key = '';
             for (const _key_ in nature) {
                 for (const [start, end] of nature[_key_]) {
                     if (RNG > start && RNG < end) {
-                        const arr = Object.entries(modelData)
-                        .filter(([key, value]) => value.path.includes(_key_))
+                        const arr = Object.entries(LODModelsData)
+                        .filter(([key, value]) => value.path.includes(_key_) && key.includes(typeFlag))
                         .map(([key]) => key);
 
                         
@@ -139,7 +158,7 @@ export class Chunk extends THREE.Object3D {
             }
             if (key == '' ||!key) return;
 
-            const data = modelData[key];
+            const data = LODModelsData[key];
 
             if (data.needsSpace && !grid.isSpace({x: this.x, z: this.z, size: this.size}, x, z, data.size, data.size)) return;
 
@@ -252,6 +271,75 @@ export class Chunk extends THREE.Object3D {
         }, 100)
     }
 
+    addSnow() {
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        const colors = [];
+    
+        const triangleSize = this.size / this.gridSize;
+    
+        // Precompute random height offsets
+        const heightOffsets = [];
+        for (let i = 0; i <= this.gridSize; i++) {
+            heightOffsets[i] = [];
+            for (let j = 0; j <= this.gridSize; j++) {
+                let k = terrain.RNG(
+                    (this.x * this.size + i) + (j % 7) * 13.37 + 1,
+                    (this.z * this.size + j) + (i % 5) * 19.91 + 1
+                ) * 0.2;
+                if (i == 0 || j == 0 || i == this.gridSize || j == this.gridSize) k = 0;
+                heightOffsets[i][j] = k;
+            }
+        }
+    
+        for (let i = 0; i < this.gridSize; i++) {
+            for (let j = 0; j < this.gridSize; j++) {
+                let h1 = this.heightMap[i][j] + heightOffsets[i][j];
+                let h2 = this.heightMap[i + 1][j] + heightOffsets[i + 1][j];
+                let h3 = this.heightMap[i][j + 1] + heightOffsets[i][j + 1];
+                let h4 = this.heightMap[i + 1][j + 1] + heightOffsets[i + 1][j + 1];
+    
+                const c = new THREE.Color(terrain.getColor("snow"));
+    
+                const x = (i * triangleSize) - (this.size / 2);
+                const z = (j * triangleSize) - (this.size / 2);
+    
+                // Triangle 1 of each grid square
+                vertices.push(x, z, h1);
+                vertices.push(x + triangleSize, z, h2);
+                vertices.push(x, z + triangleSize, h3);
+    
+                colors.push(c.r, c.g, c.b);
+                colors.push(c.r, c.g, c.b);
+                colors.push(c.r, c.g, c.b);
+    
+                // Triangle 2 of each grid square
+                vertices.push(x + triangleSize, z, h2);
+                vertices.push(x + triangleSize, z + triangleSize, h4);
+                vertices.push(x, z + triangleSize, h3);
+    
+                colors.push(c.r, c.g, c.b);
+                colors.push(c.r, c.g, c.b);
+                colors.push(c.r, c.g, c.b);
+            }
+        }
+    
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+        const material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+    
+        mesh.position.y = this.snowLevel;
+        mesh.name = 'snow-layer';
+    
+        this.add(mesh);
+    }
+    
+
     updateSeasonalColors() {
         const {season, progress} = time.getSeasonData()
         const seasonOrder = ['spring', 'summer', 'autumn', 'winter'];
@@ -324,6 +412,12 @@ export class Chunk extends THREE.Object3D {
     }
 
     update() {
+        if (this.snowLevel != weather.snowLevel) {
+            const snowLayer = this.getObjectByName("snow-layer")
+            if (!snowLayer) return;
+            snowLayer.position.y = weather.snowLevel;
+            this.snowLevel = weather.snowLevel;
+        }
     }
 
     get Collider() {

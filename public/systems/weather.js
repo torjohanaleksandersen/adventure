@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { time } from "../main.js";
+import { particleEffects, time } from "../main.js";
 import { CHUNK_SIZE, DRAW_RANGE } from "./world.js";
 /*
 const temperatures = {
@@ -27,7 +27,7 @@ const temperatures = {
 }
 */
 
-const weather = {
+const weathers = {
     primary: ['clear', 'rain'],
     secondary: ['wind', 'fog', 'cloud']
 }
@@ -42,7 +42,7 @@ const seasons = {
         weatherChances: [0.70, 0.30]
     },
     winter: {
-        weatherChances: [0.50, 0.50]
+        weatherChances: [1.0, 0.0]
     },
 }
 
@@ -50,33 +50,81 @@ let amplitude = 7;
 
 let lastDay = -1;
 
-let lastWeather = '';
-let particleDistance = 1;
-
 export class Weather {
     constructor () {
         this.temperature = 0;
-        this.currentWeather = {
-            weather: '',
-            time: 0,
+        this.current = {
+            type: '',
+            duration: 0,
         };
-        this.windDirection = new THREE.Vector3(0, 0, 0);
+        this.windDirection = new THREE.Vector3(1, 0, 1);
 
         this.snowingChunks = {};
 
-        this.set(null)
+        this.snowLevel = -0.2;
+        this.iceOnWater = false;
+        this.snowOnNatureAssets = false;
+        this.timeAboveFreezing = 0;
+        this.timeBelowFreezing = 0;
+
+        this.timeBelowIceTemperature = 0;
+        this.timeAboveIceTemperature = 0;
+        this.iceTemperature = -5;
+
+        this.set()
     }
 
-    set() {
-        let type = '';
+    set(options = {}) {
+        let index = 0;
 
-        this.weather = type;
+        const r = Math.random();
+        for (let i = 0; i < 2; i++) {
+            if (r < seasons[time.season].weatherChances[i]) {
+                index = i;
+                break;
+            }
+        }
+    
+        let defaultType = weathers.primary[index]; // Determine default weather type
+        const defaultDuration = 120 + Math.random() * 60; // Default duration
+
+        if (this.temperature <= 0 && defaultType == 'rain') {
+            defaultType = 'snow';
+        }
+
+
+    
+        const {
+            type = defaultType,
+            duration = defaultDuration,
+        } = options;
+
+        if (type != this.current.type) {
+            this.change(type, this.current.type);
+        }
+    
+        this.current = {
+            type,
+            duration,
+            time: duration,
+        };
+    
+        console.log(`Weather set to ${type} for ${duration} s`);
     }
+
+    change(weather, lastWeather) {
+        if (weather == 'rain' || weather == 'snow') {
+            particleEffects.createWeather(weather);
+        } else if (weather == 'clear') {
+            particleEffects.removeWeather(lastWeather);
+        }
+    }
+
+
+    
 
     getTemperature() {
-        const base = Math.sin(time.getDay() * Math.PI / (time.seasonLengthInDays * 2) + Math.PI / 5) * 30 - 5
-        const daily = amplitude * Math.sin(Math.PI * time.getHour() / 12 - (3 * Math.PI / 4));
-        return base + daily;
+        return this.temperature;
     }
 
     updateTemperatureData() {
@@ -89,15 +137,73 @@ export class Weather {
         amplitude += rn;
     }
 
-    dayUpdate() {
-
-    }
-
-    update(position, particleEffects) {
+    update() {
         let day = time.getDay()
         if (day != lastDay) {
             this.updateTemperatureData();
             lastDay = day;
+        }
+
+        const dt = time.getDelta()
+
+        const base = Math.sin(time.getDay() * Math.PI / (time.seasonLengthInDays * 2) + Math.PI / 5) * 30 - 5
+        const daily = amplitude * Math.sin(Math.PI * time.getHour() / 12 - (3 * Math.PI / 4));
+        this.temperature = base + daily;
+
+
+        //setting new weather
+        this.current.time -= dt;
+        if (this.current.time < 0) {
+            this.set();
+        }
+
+        //handling ice on water
+        if (this.temperature < this.iceTemperature) {
+            this.timeBelowIceTemperature += dt;
+        } else {
+            this.timeAboveIceTemperature += dt;
+        }
+
+        if (this.timeBelowIceTemperature > 100) {
+            this.timeAboveIceTemperature = 0;
+            this.iceOnWater = true;
+        }
+
+        if (this.timeAboveIceTemperature > 100) {
+            this.timeBelowIceTemperature = 0;
+            this.iceOnWater = false;
+        }
+
+
+        //Handling snow on nature assets
+        if (this.temperature > 0) {
+            this.timeAboveFreezing += dt;
+        } else {
+            this.timeBelowFreezing += dt;
+        }
+
+        if (this.timeBelowFreezing > 5 && this.snowLevel > 0.3) {
+            this.timeAboveFreezing = 0;
+            this.snowOnNatureAssets = true;
+        }
+
+        if (this.timeAboveFreezing > 5 && this.snowLevel < 0.3) {
+            this.timeBelowFreezing = 0;
+            this.snowOnNatureAssets = false;
+        }
+
+
+        //snowlevel increase
+        if (this.current.type == 'snow') {
+            this.snowLevel += 0.002 * dt
+        } else if (this.temperature > 0) {
+            this.snowLevel -= 0.002 * dt;
+        }
+
+        if (this.snowLevel > 0.2) {
+            this.snowLevel = 0.2;
+        } else if (this.snowLevel < -0.2) {
+            this.snowLevel = -0.2;
         }
     }
 } 

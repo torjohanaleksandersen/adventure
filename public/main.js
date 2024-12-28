@@ -6,12 +6,11 @@ import { Player } from './systems/player.js';
 import { Graphics } from './systems/graphics.js';
 import { World } from './systems/world.js';
 import { Time } from './systems/time.js';
-import { Models } from './systems/models.js';
+import { LODModels } from './systems/models.js';
 import { GLTFLoader } from './imports/three/examples/jsm/Addons.js';
 import { Grid } from './systems/grid.js';
 import { Weather } from './systems/weather.js';
 import { ParticleEffects } from './systems/particle-effects.js';
-import { Campfire } from './world-objects/campfire.js';
 import { Builder } from './systems/builder.js';
 
 const scene = new THREE.Scene();
@@ -33,8 +32,9 @@ document.addEventListener('mousedown', () => {
 
 export const inputs = new Inputs(camera, renderer)
 export const time = new Time();
-export const models = new Models();
+export const models = new LODModels();
 export const grid = new Grid();
+export const particleEffects = new ParticleEffects()
 export const weather = new Weather();
 
 async function main() {
@@ -52,46 +52,70 @@ async function main() {
     const world = new World(physics, player);
     scene.add(world);
 
-    const particleEffects = new ParticleEffects()
+    const builder = new Builder(camera, world, player);
+
     scene.add(particleEffects);
-    
     scene.add(player.skin);
 
 
     const loader = new GLTFLoader();
 
-    loader.load("models/nature/sky/Cloud.glb", gltf => {
-        const model = gltf.scene;
+    /*
+    let mixer = null;
+    let actions = {}
+    loader.load("models/animals/cow.glb", gltf => {
+        const cow = gltf.scene;
+        cow.scale.setScalar(0.5);
 
-        model.scale.setScalar(6)
-        model.position.set(0, 50, 50)
-
-        model.traverse(obj => {
+        cow.traverse(obj => {
             if (obj.isMesh) {
-                obj.recieveShadow = false;
-                obj.castShadow = false;
-                const updatedMaterial = obj.material.clone();
-
-                // Update material properties
-                updatedMaterial.roughness = 0.8;
-                updatedMaterial.metalness = 0.0;
-                updatedMaterial.transparent = true;
-                updatedMaterial.opacity = 0.9;
-
-                updatedMaterial.emissive = new THREE.Color(0xffffff); // Lighten the bottom
-                updatedMaterial.emissiveIntensity = 0.2;
-
-                // Assign the updated material back to the mesh
-                obj.material = updatedMaterial;
+                obj.material = new THREE.MeshLambertMaterial({
+                    color: obj.material.color,
+                    map: obj.material.map,
+                    transparent: obj.material.transparent,
+                    opacity: obj.material.opacity,
+                    side: obj.material.side,
+                    emissive: obj.material.emissive,
+                    emissiveMap: obj.material.emissiveMap,
+                    emissiveIntensity: obj.material.emissiveIntensity,
+                    envMap: obj.material.envMap,
+                    name: obj.material.name
+                })
             }
         })
 
-        scene.add(model);
+        mixer = new THREE.AnimationMixer(cow);
+
+        gltf.animations.forEach((clip) => {
+            actions[clip.name] = mixer.clipAction(clip);
+        });
+
+        console.log(actions);
+        actions['Walk'].play();
+
+        scene.add(cow);
     })
 
+    */
 
+    /*
+    loader.load("models/worldobj/campfire.glb", gltf => {
+        const model = gltf.scene;
+        model.scale.setScalar(0.5);
 
+        scene.add(model);
 
+        model.traverse(obj => {
+            if (obj.isMesh) {
+                delete obj.geometry.index;
+                obj.geometry.deleteAttribute('normal');
+                console.log("obj: ", obj.geometry)
+                physics.addMeshCollider(obj);
+                physics.finalizeEnvironmentColliders();
+            }
+        })
+    })
+        */
 
 
 
@@ -113,20 +137,14 @@ async function main() {
                     chunk.updateSeasonalColors();
                 })
                 break;
-            case 'j': 
-                particleEffects.createWeather('rain');
+            case 'j':
+                builder.getIntersection()
                 break;
             case 'k':
-                particleEffects.removeWeather('rain');
+                
                 break;
         }
     })
-
-
-    const campfire = new Campfire();
-    campfire.position.set(0, 1, 0);
-    campfire.visible = false;
-    scene.add(campfire);
 
 
 
@@ -144,7 +162,7 @@ async function main() {
         const dt = (newTime - currentTime) / 1000;
         currentTime = newTime;
         time.update(dt);
-        weather.update(player.position, particleEffects);
+        weather.update();
         if (world.initialized) physics.update(dt);
         graphics.update(time.getDelta(), player);
         world.update(time.getDelta());
@@ -160,15 +178,8 @@ async function main() {
         }
         */
 
-        const distFromCampfire = new THREE.Vector2(
-            campfire.position.x - player.position.x,
-            campfire.position.z - player.position.z
-        ).length();
 
-        warm = 0;
-        if (distFromCampfire < 5) {
-            warm += (5 - distFromCampfire) * 30;
-        }
+        //if (mixer) mixer.update(dt);
 
 
 

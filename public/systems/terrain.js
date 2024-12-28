@@ -19,8 +19,7 @@ class Terrain {
     getBiomeValue(x, z) {
         const broad = this.f1(x * 0.002, z * 0.002) + 0.5;
 
-        const base = this.f2(x * 0.02, z * 0.02) * 0.2
-    
+        const base = this.f2(x * 0.02, z * 0.02) * 0.2;
 
         let biomeValue = broad + base;
         return Math.max(0, Math.min(1, biomeValue));

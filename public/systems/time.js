@@ -1,10 +1,11 @@
 
 export class Time {
     constructor() {
-        this.time = 80;
+        this.time = 0;
         this.tickSpeed = 1;
         this.deltaTime = 0;
         this.startDay = 0;
+        this.season = '',
         this.seasonLengthInDays = 10;
 
         this.listeners = {
@@ -12,6 +13,7 @@ export class Time {
         }
 
         this.previousDay = this.getDay();
+        this.getSeasonData();
     }
 
     addEventListener(event, callback) {
@@ -65,6 +67,7 @@ export class Time {
         } else {
             progress = p;
         }
+        this.season = season;
         return {season, progress};
     }
 

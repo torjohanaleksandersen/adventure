@@ -116,60 +116,34 @@ class Bush extends Model {
 }
 
 
-export const modelData = {
-    /*
-    'big-round-tree': {
-        position: [0, 2, 0],
-        rotation: [0, 0, 0],
-        scaleScalar: 5,
-        randomRotation: 'y',
-        path: 'trees/',
-        maxRenderDistance: 150,
-        size: 3,
-        needsSpace: true,
-        LOD: {
-            H: {
-                distance: 0,
-                geometry: 1,
-            },
-            M: {
-                distance: 50,
-                geometry: 0.4,
-            },
-            L: {
-                distance: 100,
-                geometry: 0.6
-            }
-        }
-    },
-    */
-    
-    
+export const LODModelsData = {
     'pine-tree-1-temperate': new PineTree(),
-    //'pine-tree-1-snow': new PineTree(),
+    'pine-tree-1-snow': new PineTree(),
     'pine-tree-2-temperate': new PineTree(),
-    //'pine-tree-2-snow': new PineTree(),
+    'pine-tree-2-snow': new PineTree(),
     'pine-tree-3-temperate': new PineTree(2.4),
-    //'pine-tree-3-snow': new PineTree(),
+    'pine-tree-3-snow': new PineTree(),
 
     'rock-1-temperate': new Rock(),
-    //'rock-1-snow': new Rock(),
+    'rock-1-snow': new Rock(),
     'rock-2-temperate': new Rock(),
-    //'rock-2-snow': new Rock(),
+    'rock-2-snow': new Rock(),
     'rock-3-temperate': new Rock(),
-    //'rock-3-snow': new Rock(),
+    'rock-3-snow': new Rock(),
     
     
     'tree-1-temperate': new Tree(0.4, 3.4),
     'tree-2-temperate': new Tree(0.2, 3.5),
     'tree-3-temperate': new Tree(0.4, 3.6),
 
-    //'tree-no-leaves-snow-1': new TreeNoLeaves(0.4),
-    //'tree-no-leaves-snow-2': new TreeNoLeaves(0.2),
-    //'tree-no-leaves-snow-3': new TreeNoLeaves(0.5),
+    'tree-no-leaves-snow-1': new TreeNoLeaves(0.4),
+    'tree-no-leaves-snow-2': new TreeNoLeaves(0.2),
+    'tree-no-leaves-snow-3': new TreeNoLeaves(0.5),
 
     
-    'bush-1': new Bush(),
-    'bush-2': new Bush(-3, 2),
-    'bush-3': new Bush(),
+    'bush-1-temperate': new Bush(),
+    'bush-2-temperate': new Bush(-3, 2),
+    'bush-3-temperate': new Bush(),
+
+
 }

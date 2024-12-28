@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { Chunk } from './chunk.js'
-import { grid, time } from '../main.js';
+import { grid, particleEffects, weather } from '../main.js';
 import { Water } from './water.js';
 
 export const CHUNK_SIZE = 50;
@@ -11,6 +11,8 @@ const NATURE_DRAW_RANGE = 3;
 const SIMULATION_DISTANCE = 3;
 const WORLD_SIZE = CHUNK_SIZE * (DRAW_RANGE * 2 - 1);
 const WORLD_GRID_SIZE = CHUNK_GRID_SIZE * (DRAW_RANGE * 2 - 1);
+
+let lastChunkX = 0, lastChunkZ = 0;
 
 export class World extends THREE.Group {
     constructor (physics, player) {
@@ -32,6 +34,7 @@ export class World extends THREE.Group {
         this.addWater()
 
         this.icemesh = new THREE.Object3D;
+        this.addIce();
         this.icemesh.visible = false;
 
 
@@ -300,7 +303,28 @@ export class World extends THREE.Group {
             this.initialized = true;
         }
 
-        
+
+
+        const chunkX = Math.ceil((this.player.position.x - CHUNK_SIZE / 2) / CHUNK_SIZE);
+        const chunkZ = Math.ceil((this.player.position.z - CHUNK_SIZE / 2) / CHUNK_SIZE);
+
+        if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
+            //const chunk = this.chunks.get(`${chunkX},${chunkZ}`)
+            particleEffects.playerChunkChange(chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE);
+
+            lastChunkX = chunkX;
+            lastChunkZ = chunkZ;
+        }
+
+        if (weather.iceOnWater) {
+            if (!this.icemesh.visible) this.initialized = false;
+            this.icemesh.visible = true;
+            this.river.visible = false;
+        } else {
+            if (!this.river.visible) this.initialized = false;
+            this.icemesh.visible = false;
+            this.river.visible = true;
+        }
     }
 
 }
