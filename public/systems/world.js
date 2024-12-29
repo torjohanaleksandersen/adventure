@@ -316,7 +316,7 @@ export class World extends THREE.Group {
             lastChunkZ = chunkZ;
         }
 
-        if (weather.iceOnWater) {
+        if (weather.iceOnWater || 1) {
             if (!this.icemesh.visible) this.initialized = false;
             this.icemesh.visible = true;
             this.river.visible = false;

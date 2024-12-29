@@ -16,6 +16,7 @@ export class RigidBody extends THREE.Object3D {
             new RoundedBoxGeometry(0.5, 2, 1, 10, 0.25),
             new THREE.MeshBasicMaterial({ color: 0xff00ff})
         )
+        mesh.visible = false;
         this.add(mesh);
         mesh.geometry.translate(0, -0.5, 0)
         this.radius = 0.5;

@@ -14,7 +14,7 @@ import { ParticleEffects } from './systems/particle-effects.js';
 import { Builder } from './systems/builder.js';
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 1000);
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setPixelRatio( window.devicePixelRatio );
@@ -47,7 +47,7 @@ async function main() {
     physics.addRigidBody(player);
     scene.add(player)
 
-    //await player.loadModel(scene)
+    await player.loadModel(scene)
     
     const world = new World(physics, player);
     scene.add(world);
@@ -98,35 +98,10 @@ async function main() {
 
     */
 
-    /*
-    loader.load("models/worldobj/campfire.glb", gltf => {
-        const model = gltf.scene;
-        model.scale.setScalar(0.5);
-
-        scene.add(model);
-
-        model.traverse(obj => {
-            if (obj.isMesh) {
-                delete obj.geometry.index;
-                obj.geometry.deleteAttribute('normal');
-                console.log("obj: ", obj.geometry)
-                physics.addMeshCollider(obj);
-                physics.finalizeEnvironmentColliders();
-            }
-        })
-    })
-        */
 
 
 
 
-
-
-
-
-
-
-    let warm = 0;
     inputs.registerHandler('keydown', (e) => {
         switch(e.key) {
             case 'g':
@@ -169,14 +144,14 @@ async function main() {
         particleEffects.update();
 
         // Update FPS every second
-        /*
+        
         frameCount++;
         if (newTime - lastFpsTime >= 1000) { // 1000ms = 1 second
             fps = frameCount;
             frameCount = 0;
             lastFpsTime = newTime;
+            //console.log("FPS: ", fps);
         }
-        */
 
 
         //if (mixer) mixer.update(dt);
