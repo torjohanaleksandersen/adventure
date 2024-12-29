@@ -105,7 +105,7 @@ async function main() {
     inputs.registerHandler('keydown', (e) => {
         switch(e.key) {
             case 'g':
-                console.log(weather.getTemperature() + warm);
+                console.log(weather.getTemperature());
                 break;
             case 'h':
                 world.chunks.forEach(chunk => {
