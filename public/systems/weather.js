@@ -61,7 +61,7 @@ export class Weather {
 
         this.snowingChunks = {};
 
-        this.snowLevel = -0.2;
+        this.snowLevel = -1;
         this.iceOnWater = false;
         this.snowOnNatureAssets = false;
         this.timeAboveFreezing = 0;

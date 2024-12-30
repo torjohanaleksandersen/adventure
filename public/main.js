@@ -6,7 +6,7 @@ import { Player } from './systems/player.js';
 import { Graphics } from './systems/graphics.js';
 import { World } from './systems/world.js';
 import { Time } from './systems/time.js';
-import { LODModels } from './systems/models.js';
+import { LODModels, Models } from './systems/models.js';
 import { GLTFLoader } from './imports/three/examples/jsm/Addons.js';
 import { Grid } from './systems/grid.js';
 import { Weather } from './systems/weather.js';
@@ -14,7 +14,7 @@ import { ParticleEffects } from './systems/particle-effects.js';
 import { Builder } from './systems/builder.js';
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 500);
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setPixelRatio( window.devicePixelRatio );
@@ -24,20 +24,37 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
+const music = new Audio("music/background.weba");
+music.volume = 0;
+music.loop = true;
+
+let musicPlaying = false;
+
 const controls = new PointerLockControls(camera, renderer.domElement);
 controls.pointerSpeed = 0.5
 document.addEventListener('mousedown', () => {
     controls.lock();
+    if (!musicPlaying) {
+        music.play();
+        musicPlaying = true;
+    }
 })
+
+const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+const material = new THREE.MeshBasicMaterial({color: 0xff00ff});
+export const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh)
 
 export const inputs = new Inputs(camera, renderer)
 export const time = new Time();
-export const models = new LODModels();
+export const LODmodels = new LODModels();
+export const models = new Models();
 export const grid = new Grid();
 export const particleEffects = new ParticleEffects()
 export const weather = new Weather();
 
 async function main() {
+    await LODmodels.loadAllModels();
     await models.loadAllModels();
 
     const physics = new Physics(scene);
@@ -60,48 +77,6 @@ async function main() {
 
     const loader = new GLTFLoader();
 
-    /*
-    let mixer = null;
-    let actions = {}
-    loader.load("models/animals/cow.glb", gltf => {
-        const cow = gltf.scene;
-        cow.scale.setScalar(0.5);
-
-        cow.traverse(obj => {
-            if (obj.isMesh) {
-                obj.material = new THREE.MeshLambertMaterial({
-                    color: obj.material.color,
-                    map: obj.material.map,
-                    transparent: obj.material.transparent,
-                    opacity: obj.material.opacity,
-                    side: obj.material.side,
-                    emissive: obj.material.emissive,
-                    emissiveMap: obj.material.emissiveMap,
-                    emissiveIntensity: obj.material.emissiveIntensity,
-                    envMap: obj.material.envMap,
-                    name: obj.material.name
-                })
-            }
-        })
-
-        mixer = new THREE.AnimationMixer(cow);
-
-        gltf.animations.forEach((clip) => {
-            actions[clip.name] = mixer.clipAction(clip);
-        });
-
-        console.log(actions);
-        actions['Walk'].play();
-
-        scene.add(cow);
-    })
-
-    */
-
-
-
-
-
     inputs.registerHandler('keydown', (e) => {
         switch(e.key) {
             case 'g':
@@ -113,16 +88,13 @@ async function main() {
                 })
                 break;
             case 'j':
-                builder.getIntersection()
+                particleEffects.createTorchFlames();
                 break;
             case 'k':
-                
+                particleEffects.removeTorchFlames();
                 break;
         }
     })
-
-
-
 
 
     let currentTime = performance.now();
@@ -152,6 +124,8 @@ async function main() {
             lastFpsTime = newTime;
             //console.log("FPS: ", fps);
         }
+
+        //axe.position.copy(player.position).add(new THREE.Vector3(0, 0, 1));
 
 
         //if (mixer) mixer.update(dt);

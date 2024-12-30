@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import * as COLORS from '../data/colors.js'
 import { terrain } from './terrain.js';
-import { grid, models, time, weather } from '../main.js';
+import { grid, LODmodels, time, weather } from '../main.js';
 import { LODModelsData } from '../data/models.js'
 
 
@@ -167,15 +167,15 @@ export class Chunk extends THREE.Object3D {
             const M = new THREE.Group();
             const L = new THREE.Group();
 
-            const Hmodel = models.getModel(key + '_H');
+            const Hmodel = LODmodels.getModel(key + '_H');
             Hmodel.forEach(obj => {
                 H.add(obj);
             })
-            const Mmodel = models.getModel(key + '_M');
+            const Mmodel = LODmodels.getModel(key + '_M');
             Mmodel.forEach(obj => {
                 M.add(obj);
             })
-            const Lmodel = models.getModel(key + '_L');
+            const Lmodel = LODmodels.getModel(key + '_L');
             Lmodel.forEach(obj => {
                 L.add(obj);
             })

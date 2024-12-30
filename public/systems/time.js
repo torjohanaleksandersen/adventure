@@ -6,7 +6,7 @@ export class Time {
         this.deltaTime = 0;
         this.startDay = 0;
         this.season = '',
-        this.seasonLengthInDays = 10;
+        this.seasonLengthInDays = 4;
 
         this.listeners = {
             'day-change': []

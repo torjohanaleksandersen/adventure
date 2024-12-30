@@ -1,10 +1,13 @@
 import * as THREE from 'three';
-import { inputs } from "../main.js";
+import { inputs, models, particleEffects } from "../main.js";
 import { RigidBody } from "./rigidBody.js";
 import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
+import { modelsData } from '../data/models.js';
+import { InHand } from './in-hand.js';
 
 
 const loader = new GLTFLoader();
+let inHand = new InHand(new THREE.Object3D());
 
 export class Player extends RigidBody {
     constructor (camera) {
@@ -33,7 +36,9 @@ export class Player extends RigidBody {
         this.animationLocked = false;
 
 
-        this.inventory = {};
+        this.hotbar = ["sword", "axe", "torch", "knife", "shovel", null];
+        this.activeSlot = 0;
+        this.inHand = '';
 
 
         this.speed = 5;
@@ -67,6 +72,13 @@ export class Player extends RigidBody {
                     this.setAction("Interact");
                     this.lockAction("Interact");
                     break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                    this.activeSlot = parseInt(key) - 1;
+                    break;
             }
         })
         inputs.registerHandler('keyup', (e) => {
@@ -96,7 +108,8 @@ export class Player extends RigidBody {
                 this.lockAction(action);
             }
             if (e.button == 2) {
-                console.log('R')
+                this.setAction("Sword_Slash");
+                this.lockAction("Sword_Slash");
             }
         })
     }
@@ -115,6 +128,11 @@ export class Player extends RigidBody {
                     model.scale.setScalar(0.70);
                     this.skin = model;
                     this.mixer = new THREE.AnimationMixer(this.skin);
+
+                    const skeleton = new THREE.SkeletonHelper(this.skin);
+                    this.wrist = skeleton.bones.filter(element => element.name == "WristR")[0]
+
+                    inHand = new InHand(this.wrist);
 
 
                     model.traverse(obj => {
@@ -264,11 +282,33 @@ export class Player extends RigidBody {
         } else if ((!m.w && (m.a || m.d || m.s)) || (m.w && (m.a || m.d || m.s))) {
             this.setAction("Walk");
         } else if (!(m.w && m.a && m.d && m.s)) {
-            this.setAction("Idle");
+            this.setAction("Idle_Sword");
         }
+    }
 
-
+    holdItem(name) {
+        if (this.inHand == name) return;
+        const bone = this.wrist;
         
+        bone.remove(bone.getObjectByName(this.inHand));
+
+        let modelData = null;
+        for (const type in modelsData) {
+            for (const key in modelsData[type]) {
+                if (key == name) modelData = modelsData[type][key]
+            }
+        }
+        const model = models.getModel(name);
+        if (!model || !modelData) return;
+
+        model.scale.setScalar(modelData.scaleScalar);
+        model.position.copy(modelData.position);
+        model.rotation.set(modelData.rotation.x, modelData.rotation.y, modelData.rotation.z);
+
+        model.name = name;
+
+        bone.add(model);
+        this.inHand = name;
     }
 
     update(dt) {
@@ -282,6 +322,17 @@ export class Player extends RigidBody {
             this.velocity.x += dx * this.acceleration * dt;
             this.velocity.z += dz * this.acceleration * dt;
         }
+
+        if (this.inHand == "torch") {
+            const endOfTorch = inHand.getEndOfTorch();
+
+            particleEffects.updateTorchFlamesPosition(endOfTorch);
+        }
+
+        if (this.hotbar[this.activeSlot] != this.inHand) {
+            this.holdItem(this.hotbar[this.activeSlot]);
+        }
+        
 
         this.mixer.update(dt);
     }

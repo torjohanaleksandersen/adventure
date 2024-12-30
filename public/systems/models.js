@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 import { SimplifyModifier } from '../imports/three/examples/jsm/Addons.js';
-import { LODModelsData } from '../data/models.js';
+import { LODModelsData, modelsData } from '../data/models.js';
 
 
 
 const modifier = new SimplifyModifier()
 const manager = new THREE.LoadingManager();
-const loader = new GLTFLoader(manager).setPath('models/nature/')
+const LODloader = new GLTFLoader(manager).setPath('models/nature/')
+const loader = new GLTFLoader(manager);
 
 export class LODModels {
     constructor() {
@@ -16,7 +17,7 @@ export class LODModels {
 
     loadModel(name, geometry = 1, LOD) {
         return new Promise((resolve, reject) => {
-            loader.load(LODModelsData[name].path + name + '.glb', gltf => {
+            LODloader.load(LODModelsData[name].path + name + '.glb', gltf => {
                 const model = gltf.scene;
                 const subModels = [];
                 model.traverse(obj => {
@@ -83,17 +84,24 @@ export class LODModels {
 }
 
 
-export class AnimalsModels {
-    constructor() {
-        this.models = {};
+
+
+
+
+export class Models {
+    constructor () {
+        this.models = {}
     }
 
-    loadModel() {
+    loadModel(path) {
         return new Promise((resolve, reject) => {
-            loader.load('modles/animals/cow.glb', gltf => {
+            loader.load("models/" + path + ".glb", (gltf) => {
                 const model = gltf.scene;
+
                 model.traverse(obj => {
                     if (obj.isMesh) {
+                        obj.castShadow = true;
+                        obj.recieveShadow = true;
                         obj.material = new THREE.MeshLambertMaterial({
                             color: obj.material.color,
                             map: obj.material.map,
@@ -105,13 +113,12 @@ export class AnimalsModels {
                             emissiveIntensity: obj.material.emissiveIntensity,
                             envMap: obj.material.envMap,
                             name: obj.material.name
-                        })
+                        });
                     }
                 })
-                this.models["cow"] = {};
-                this.models["cow"].model = model;
-                this.models["cow"].mode
-                resolve(gltf);
+                const name = path.split("/")[1];
+                this.models[name] = model;
+                resolve(gltf)
             }, undefined, (error) => reject(error));
         })
     }
@@ -119,14 +126,13 @@ export class AnimalsModels {
     async loadAllModels() {
         try {
             const elements = [];
-            for (const name in LODModelsData) {
-                for (const level in LODModelsData[name].LOD) {
-                    if (LODModelsData[name].LOD[level].geometry == 0) continue; //if it has 100% geometry reduction
-                    elements.push({name: name, LOD: LODModelsData[name].LOD[level].geometry, level: level});
+            for (const path in modelsData) {
+                for (const name in modelsData[path]) {
+                    elements.push(path + "/" + name);
                 }
             }
             await Promise.all(
-                elements.map(model => this.loadModel(model.name, model.LOD, model.level))
+                elements.map(element => this.loadModel(element))
             );
         } catch (error) {
             console.error('Error loading models: ', error);
@@ -134,11 +140,8 @@ export class AnimalsModels {
     }
 
     getModel(name) {
-        const models = []
-        if (!this.models[name]) return models;
-        this.models[name].forEach(model => {
-            models.push(model.clone());
-        })
-        return models;
+        const model = this.models[name];
+        if (!model) return null;
+        return model.clone();
     }
 }

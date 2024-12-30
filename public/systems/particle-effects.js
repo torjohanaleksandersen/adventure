@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { time } from '../main.js';
+import { mesh, time } from '../main.js';
 
 
 
@@ -10,6 +10,8 @@ export class ParticleEffects extends THREE.Object3D {
         this.particles = {};
         this.particles.snow = null;
         this.particles.rain = null;
+
+        this.endOfTorchPosition = new THREE.Vector3(0, 0, 0);
     }
 
     createWeather(name) {
@@ -93,16 +95,7 @@ export class ParticleEffects extends THREE.Object3D {
         }
     }
 
-    playerChunkChange(x, z) {
-        for (const name in this.particles) {
-            const mesh = this.particles[name];
-            if (!mesh) continue;
-
-            mesh.position.set(x, 0, z);
-        }
-    }
-
-    update() {
+    updateWeather() {
         const weatherTypes = ['snow', 'rain'];
         for (const name of weatherTypes) {
             if (this.particles[name] != null) {
@@ -123,5 +116,109 @@ export class ParticleEffects extends THREE.Object3D {
                 mesh.geometry.attributes.position.needsUpdate = true;
             }
         }
+    }
+
+    playerChunkChange(x, z) {
+        for (const name in this.particles) {
+            const mesh = this.particles[name];
+            if (!mesh) continue;
+
+            mesh.position.set(x, 0, z);
+        }
+    }
+
+    createTorchFlames() {
+        const position = this.endOfTorchPosition;
+        const count = 20; // Number of particles
+        const points = new THREE.Object3D();
+        points.name = "torch-flame-points";
+        this.add(points);
+    
+        for (let i = 0; i < count; i++) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(3);
+    
+            // Randomized initial positions
+            positions[0] = position.x - 0.1 + Math.random() * 0.2; // x
+            positions[1] = position.y + Math.random() * 0.3;       // y
+            positions[2] = position.z - 0.1 + Math.random() * 0.2; // z
+    
+            geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({
+                color: 0xff4500, // Flame color
+                size: 0.1 - Math.random() * 0.03,
+                transparent: true,
+                opacity: 0.9,
+            });
+            const point = new THREE.Points(geometry, material);
+            point.frustumCulled = false;
+    
+            // Store initial and maximum heights
+            point.userData.startHeight = positions[1];
+            point.userData.maxHeight = positions[1] + 0.05 + Math.random() * 0.05; // Randomized max height
+            point.userData.respawnDelay = 0; // Delay before respawning
+    
+            points.add(point);
+        }
+
+
+        const light = new THREE.PointLight(0xff4500, 2);
+        light.position.copy(position);
+        light.name = 'point-light';
+        light.decay = 1;
+        points.add(light);
+
+
+    }
+    
+    updateTorchFlames() {
+        const size = 0.1; // Flame spread size
+        const points = this.getObjectByName("torch-flame-points");
+        if (!points) return;
+    
+        points.children.forEach((obj) => {
+            if (obj.name == 'point-light') {
+                obj.position.copy(this.endOfTorchPosition.clone().add(new THREE.Vector3(0, 0.2, 0)));
+                //mesh.position.copy(obj.position)
+                return;
+            };
+            const position = obj.geometry.attributes.position.array;
+    
+            // Upward motion with slight oscillation
+            position[1] += 0.005 + Math.sin(time.getDelta() * 5) * 0.001; // Smooth upward movement
+    
+            if (position[1] >= obj.userData.maxHeight) {
+                // Add delay before respawn
+                obj.userData.respawnDelay += time.getDelta();
+                if (obj.userData.respawnDelay > 0.1) {
+                    // Respawn particle with randomized position
+                    position[0] = this.endOfTorchPosition.x - (size / 2) + Math.random() * size; // x
+                    position[1] = this.endOfTorchPosition.y + Math.random() * 0.2;               // y
+                    position[2] = this.endOfTorchPosition.z - (size / 2) + Math.random() * size; // z
+    
+                    obj.userData.startHeight = position[1];
+                    obj.userData.maxHeight = position[1] + 0.05 + Math.random() * 0.05; // Update max height
+                    obj.userData.respawnDelay = 0; // Reset delay
+                }
+            }
+    
+            obj.geometry.attributes.position.needsUpdate = true;
+        });
+    }
+
+    removeTorchFlames() {
+        const points = this.getObjectByName("torch-flame-points");
+        if (!points) return;
+        this.remove(points);
+    }
+    
+
+    updateTorchFlamesPosition(position) {
+        this.endOfTorchPosition.copy(position);
+    }
+
+    update() {
+        this.updateWeather();
+        this.updateTorchFlames();
     }
 }
