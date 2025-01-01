@@ -4,6 +4,7 @@ import { RigidBody } from "./rigidBody.js";
 import { GLTFLoader } from '../imports/three/examples/jsm/Addons.js';
 import { modelsData } from '../data/models.js';
 import { InHand } from './in-hand.js';
+import { CHUNK_SIZE } from './world.js';
 
 
 const loader = new GLTFLoader();
@@ -15,6 +16,8 @@ export class Player extends RigidBody {
         this.camera = camera
         this.skin = new THREE.Object3D()
         this.add(this.skin);
+        this.raycaster = null;
+        this.world = null;
 
 
         this.moveInputs = {
@@ -29,6 +32,7 @@ export class Player extends RigidBody {
         this.state = {
             building: false,
         }
+        this.lastState = {};
 
         this.actions = {};
         this.mixer = new THREE.AnimationMixer();
@@ -39,6 +43,9 @@ export class Player extends RigidBody {
         this.hotbar = ["sword", "axe", "torch", "knife", "shovel", null];
         this.activeSlot = 0;
         this.inHand = '';
+
+        this.buildingHotbar = ["campfire", null, null];
+        this.activeBuildingSlot = 0;
 
 
         this.speed = 5;
@@ -66,18 +73,24 @@ export class Player extends RigidBody {
                     }
                     break;
                 case 'b':
-                    this.state.building = true;
+                    if (this.state.building) this.state.building = false;
+                    else this.state.building = true;
                     break;
                 case 'e':
                     this.setAction("Interact");
                     this.lockAction("Interact");
+                    break;
+                case 'f':
+                    this.interactWithInHand();
                     break;
                 case '1':
                 case '2':
                 case '3':
                 case '4':
                 case '5':
+                case '6':
                     this.activeSlot = parseInt(key) - 1;
+                    this.activeBuildingSlot = this.activeSlot % this.buildingHotbar.length;
                     break;
             }
         })
@@ -93,30 +106,44 @@ export class Player extends RigidBody {
                 case 'd':
                     this.moveInputs[key] = false;
                     break;
-                case 'b':
-                    this.state.building = false;
-                    break;
             }
         })
         inputs.registerHandler("mousedown", (e) => {
             if (e.button == 0) {
+                if (this.state.building) {
+                    this.build();
+                    return;
+                };
                 let action = Math.random() > 0.5 ? "Right" : "Left";
                 if (this.keys["x"]) action = "Kick_" + action;
                 else action = "Punch_" + action;
+
+                if (this.inHand != null && !this.keys["x"]) action = "Sword_Slash"
 
                 this.setAction(action);
                 this.lockAction(action);
             }
             if (e.button == 2) {
-                this.setAction("Sword_Slash");
-                this.lockAction("Sword_Slash");
+                this.raycaster.getLandscapeIntersection(this.position);
             }
         })
     }
 
-    getCollidingGround() {
-        const raycaster = new THREE.Raycaster(this.position, new THREE.Vector3(0, -1, 0));
-        raycaster.far = 2;
+    interactWithInHand() {
+        if (this.inHand === "torch") {
+            const torch = this.wrist.getObjectByName(this.inHand);
+            if (torch) {
+                let state = torch.userData.state || 0;
+                if (state === 1) {
+                    particleEffects.removeTorchFlames();
+                    state = 0;
+                } else if (state === 0) {
+                    particleEffects.createTorchFlames();
+                    state = 1;
+                }
+                torch.userData.state = state;
+            }
+        }
     }
 
     loadModel() {
@@ -275,6 +302,10 @@ export class Player extends RigidBody {
 
         this.camera.position.copy(headPosition).add(offset);
 
+        let idleAnimName = "Idle";
+        if (this.inHand != null) {
+            idleAnimName += "_Sword";
+        }
 
         let m = this.moveInputs;
         if (m.w && !m.a && !m.d && !m.s) {
@@ -282,8 +313,24 @@ export class Player extends RigidBody {
         } else if ((!m.w && (m.a || m.d || m.s)) || (m.w && (m.a || m.d || m.s))) {
             this.setAction("Walk");
         } else if (!(m.w && m.a && m.d && m.s)) {
-            this.setAction("Idle_Sword");
+            this.setAction(idleAnimName);
         }
+    }
+
+    onChunkChange(chunkX, chunkZ, lastChunkX, lastChunkZ) {
+        const chunk = this.world.chunks.get(`${chunkX},${chunkZ}`);
+        const lastChunk = this.world.chunks.get(`${lastChunkX},${lastChunkZ}`);
+        if (this.state.building) {
+            chunk.addWireframe();
+            lastChunk.removeWireframe();
+        }
+    }
+
+    build() {
+        const building = this.buildingHotbar[this.activeBuildingSlot];
+        if (!building) return;
+
+
     }
 
     holdItem(name) {
@@ -291,6 +338,11 @@ export class Player extends RigidBody {
         const bone = this.wrist;
         
         bone.remove(bone.getObjectByName(this.inHand));
+
+        if (name == null) {
+            this.inHand = null;
+            return;
+        }
 
         let modelData = null;
         for (const type in modelsData) {
@@ -304,6 +356,8 @@ export class Player extends RigidBody {
         model.scale.setScalar(modelData.scaleScalar);
         model.position.copy(modelData.position);
         model.rotation.set(modelData.rotation.x, modelData.rotation.y, modelData.rotation.z);
+        model.userData = modelData.userData || {};
+        model.userData.state = 0;
 
         model.name = name;
 
@@ -311,9 +365,30 @@ export class Player extends RigidBody {
         this.inHand = name;
     }
 
+    stateChange() {
+        if (!this.world) return
+        const s = this.state
+
+        const chunkX = Math.floor((this.position.x + CHUNK_SIZE / 2) / CHUNK_SIZE);
+        const chunkZ = Math.floor((this.position.z + CHUNK_SIZE / 2) / CHUNK_SIZE);
+
+        const chunk = this.world.chunks.get(`${chunkX},${chunkZ}`);
+        if (s.building) {
+            chunk.addWireframe();
+            this.holdItem("paper");
+        } else {
+            chunk.removeWireframe();
+        }
+    }
+
     update(dt) {
         this.move()
         this.updateSkin()
+
+        if (JSON.stringify(this.state) !== JSON.stringify(this.lastState)) {
+            this.stateChange();
+        }
+        this.lastState = { ...this.state };
 
         if (this.velocity.x != this.requestedVelocity.x || this.velocity.z != this.requestedVelocity.z) {
             const dx = this.requestedVelocity.x - this.velocity.x;
@@ -327,10 +402,18 @@ export class Player extends RigidBody {
             const endOfTorch = inHand.getEndOfTorch();
 
             particleEffects.updateTorchFlamesPosition(endOfTorch);
+        } else {
+            particleEffects.removeTorchFlames();
         }
 
-        if (this.hotbar[this.activeSlot] != this.inHand) {
+        if (this.activeSlot == null) {
+            this.holdItem(null);
+        } else if (this.hotbar[this.activeSlot] != this.inHand && !this.state.building) {
             this.holdItem(this.hotbar[this.activeSlot]);
+        }
+
+        if (this.state.building) {
+            
         }
         
 

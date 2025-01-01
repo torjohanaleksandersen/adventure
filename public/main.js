@@ -12,6 +12,7 @@ import { Grid } from './systems/grid.js';
 import { Weather } from './systems/weather.js';
 import { ParticleEffects } from './systems/particle-effects.js';
 import { Builder } from './systems/builder.js';
+import { Raycaster } from './systems/raycaster.js';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 500);
@@ -25,7 +26,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild( renderer.domElement );
 
 const music = new Audio("music/background.weba");
-music.volume = 0;
+music.volume = 0.1;
 music.loop = true;
 
 let musicPlaying = false;
@@ -69,7 +70,9 @@ async function main() {
     const world = new World(physics, player);
     scene.add(world);
 
-    const builder = new Builder(camera, world, player);
+    const raycaster = new Raycaster(camera, world);
+    player.raycaster = raycaster;
+    player.world = world;
 
     scene.add(particleEffects);
     scene.add(player.skin);
@@ -88,10 +91,10 @@ async function main() {
                 })
                 break;
             case 'j':
-                particleEffects.createTorchFlames();
+                
                 break;
             case 'k':
-                particleEffects.removeTorchFlames();
+                
                 break;
         }
     })

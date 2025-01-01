@@ -185,7 +185,7 @@ export class ParticleEffects extends THREE.Object3D {
             const position = obj.geometry.attributes.position.array;
     
             // Upward motion with slight oscillation
-            position[1] += 0.005 + Math.sin(time.getDelta() * 5) * 0.001; // Smooth upward movement
+            position[1] += 0.3 * time.getDelta() + Math.sin(time.getDelta() * 5) * 0.001; // Smooth upward movement
     
             if (position[1] >= obj.userData.maxHeight) {
                 // Add delay before respawn

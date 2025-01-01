@@ -49,6 +49,36 @@ export class Chunk extends THREE.Object3D {
         }, 1000)
     }
     
+    addWireframe() {
+        this.traverse((obj) => {
+            if (obj.isMesh) {
+                const wireframeGeometry = new THREE.WireframeGeometry(obj.geometry);
+    
+                const wireframeMaterial = new THREE.LineBasicMaterial({
+                    color: 0x000000,
+                    linewidth: 1,
+                    toneMapped: false
+                });
+    
+                const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+                wireframe.name = "wireframe"
+
+                wireframe.raycast = () => {};
+    
+                obj.add(wireframe);
+            }
+        });
+    }
+
+    removeWireframe() {
+        this.traverse((obj) => {
+            if (obj.isMesh) {
+                const wireframe = obj.getObjectByName("wireframe");
+                if (!wireframe) return;
+                obj.remove(wireframe);
+            }
+        })
+    }
     
 
     updateLOD(chunkDistFromPlayer, natureDrawRange) {

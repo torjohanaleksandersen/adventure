@@ -311,6 +311,7 @@ export class World extends THREE.Group {
         if (chunkX != lastChunkX || chunkZ != lastChunkZ) {
             //const chunk = this.chunks.get(`${chunkX},${chunkZ}`)
             particleEffects.playerChunkChange(chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE);
+            this.player.onChunkChange(chunkX, chunkZ, lastChunkX, lastChunkZ);
 
             lastChunkX = chunkX;
             lastChunkZ = chunkZ;

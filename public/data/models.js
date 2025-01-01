@@ -148,10 +148,11 @@ export const LODModelsData = {
 
 
 class Model {
-    constructor(position = new THREE.Vector3(0, 0, 0), rotation = new THREE.Vector3(0, 0, 0), scaleScalar = 1) {
+    constructor(position = new THREE.Vector3(0, 0, 0), rotation = new THREE.Vector3(0, 0, 0), scaleScalar = 1, userData = {}) {
         this.position = position;
         this.rotation = rotation;
         this.scaleScalar = scaleScalar;
+        this.userData = userData;
     }
 }
 
@@ -164,6 +165,10 @@ export const modelsData = {
         shovel: new Model(new THREE.Vector3(0.001, 0.0012, -0.0002), new THREE.Vector3(Math.PI, 0, Math.PI / 2), 0.002),
     },
     items: {
-        torch: new Model(new THREE.Vector3(0, 0.0012, -0.0002), new THREE.Vector3(Math.PI, 0, Math.PI / 2), 0.0025)
+        torch: new Model(new THREE.Vector3(0, 0.0012, -0.0002), new THREE.Vector3(Math.PI, 0, Math.PI / 2), 0.0025, {state: 0}),
+        paper: new Model(new THREE.Vector3(-0.0015, 0.0015, -0.0002), new THREE.Vector3(2, 0, 0.3), 0.005),
+    },
+    objects: {
+        campfire: new Model(),
     }
 }

@@ -36,7 +36,7 @@ const seasons = {
         weatherChances: [0.80, 0.20]
     },
     summer: {
-        weatherChances: [0.90, 0.10]
+        weatherChances: [0.70, 0.30]
     },
     autumn: {
         weatherChances: [0.70, 0.30]
